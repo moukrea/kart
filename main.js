@@ -5,9 +5,7 @@ import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 const canvas = document.getElementById('game-canvas');
 let scene, camera, renderer, controls;
 let engineMesh = null;
-let exhaustParticles = null;
-let exhaustVelocities = [];
-let exhaustLifetimes = [];
+let exhaustMeshes = [];
 
 window.scene = null;
 window.camera = null;
@@ -713,15 +711,19 @@ function init() {
                     child.castShadow = true;
                     child.receiveShadow = true;
 
-                    if (child.name.toLowerCase().includes('engine')) {
+                    const name = child.name.toLowerCase();
+                    if (name.includes('engine')) {
                         engineMesh = child;
+                    }
+
+                    if (child.geometry && child.geometry.type === 'CylinderGeometry') {
+                        const parent = child.parent;
+                        if (parent && parent.name.toLowerCase().includes('engine')) {
+                            exhaustMeshes.push(child);
+                        }
                     }
                 }
             });
-
-            if (engineMesh) {
-                setupExhaustParticles(engineMesh);
-            }
 
             scene.add(kart);
             console.log('Downloaded kart model loaded successfully');
@@ -742,70 +744,21 @@ function init() {
     animate();
 }
 
-function setupExhaustParticles(engine) {
-    const particleCount = 20;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-
-    for (let i = 0; i < particleCount; i++) {
-        positions[i * 3] = 0;
-        positions[i * 3 + 1] = 0;
-        positions[i * 3 + 2] = 0;
-        exhaustVelocities.push(new THREE.Vector3());
-        exhaustLifetimes.push(Math.random());
-    }
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-    const material = new THREE.PointsMaterial({
-        color: 0x888888,
-        size: 0.05,
-        transparent: true,
-        opacity: 0.3,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending
-    });
-
-    exhaustParticles = new THREE.Points(geometry, material);
-    exhaustParticles.position.set(0.28, 0.15, -0.16);
-    engine.add(exhaustParticles);
-}
-
 function animate() {
     requestAnimationFrame(animate);
 
+    const time = Date.now() * 0.001;
+
     if (engineMesh) {
-        const scale = 1.0 + Math.sin(Date.now() * 0.005) * 0.03;
-        engineMesh.scale.set(scale, scale, scale);
+        const engineScale = 1.0 + Math.sin(time * 8) * 0.08;
+        engineMesh.scale.set(engineScale, engineScale, engineScale);
     }
 
-    if (exhaustParticles) {
-        const positions = exhaustParticles.geometry.attributes.position.array;
-        const deltaTime = 0.016;
-
-        for (let i = 0; i < exhaustLifetimes.length; i++) {
-            exhaustLifetimes[i] -= deltaTime * 0.5;
-
-            if (exhaustLifetimes[i] <= 0) {
-                positions[i * 3] = 0;
-                positions[i * 3 + 1] = 0;
-                positions[i * 3 + 2] = 0;
-
-                exhaustVelocities[i].set(
-                    (Math.random() - 0.5) * 0.08,
-                    -(Math.random() * 0.15 + 0.1),
-                    (Math.random() - 0.5) * 0.08
-                );
-
-                exhaustLifetimes[i] = 1.0 + Math.random();
-            } else {
-                positions[i * 3] += exhaustVelocities[i].x * deltaTime;
-                positions[i * 3 + 1] += exhaustVelocities[i].y * deltaTime;
-                positions[i * 3 + 2] += exhaustVelocities[i].z * deltaTime;
-            }
-        }
-
-        exhaustParticles.geometry.attributes.position.needsUpdate = true;
+    if (exhaustMeshes.length > 0) {
+        const exhaustScale = 1.0 + Math.sin(time * 8 + Math.PI * 0.3) * 0.12;
+        exhaustMeshes.forEach(exhaust => {
+            exhaust.scale.set(exhaustScale, exhaustScale, exhaustScale);
+        });
     }
 
     controls.update();
