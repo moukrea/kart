@@ -2,355 +2,454 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const canvas = document.getElementById('game-canvas');
-
 let scene, camera, renderer, controls;
 
-function createPedalGeometry() {
-    const pedalAssembly = new THREE.Group();
+function createGroundPlane() {
+    const size = 10000;
+    const segments = 200;
 
-    const PEDAL_SPECS = {
-        mountingBar: {
-            width: 0.4,
-            height: 0.03,
-            depth: 0.03,
-            position: { x: 0, y: 0, z: 0 }
-        },
-        gas: {
-            plate: {
-                width: 0.08,
-                height: 0.12,
-                depth: 0.01,
-                position: { x: 0.1, y: -0.12, z: 0.05 },
-                rotation: { x: Math.PI * 0.15, y: 0, z: 0 }
-            },
-            arm: {
-                radius: 0.008,
-                length: 0.13,
-                position: { x: 0.1, y: -0.065, z: 0.015 },
-                rotation: { x: 0, y: 0, z: Math.PI / 2 }
-            },
-            pivot: {
-                radius: 0.012,
-                length: 0.02,
-                position: { x: 0.1, y: 0, z: 0 },
-                rotation: { x: 0, y: 0, z: Math.PI / 2 }
-            }
-        },
-        brake: {
-            plate: {
-                width: 0.10,
-                height: 0.14,
-                depth: 0.01,
-                position: { x: -0.1, y: -0.14, z: 0.06 },
-                rotation: { x: Math.PI * 0.2, y: 0, z: 0 }
-            },
-            arm: {
-                radius: 0.01,
-                length: 0.15,
-                position: { x: -0.1, y: -0.075, z: 0.015 },
-                rotation: { x: 0, y: 0, z: Math.PI / 2 }
-            },
-            pivot: {
-                radius: 0.014,
-                length: 0.02,
-                position: { x: -0.1, y: 0, z: 0 },
-                rotation: { x: 0, y: 0, z: Math.PI / 2 }
-            }
-        },
-        spacing: {
-            centerToCenter: 0.2,
-            heightFromFloor: 0.08,
-            distanceFromSeat: 0.45
-        }
-    };
+    const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+    geometry.rotateX(-Math.PI / 2);
 
-    const materials = {
-        mounting: new THREE.MeshStandardMaterial({
-            color: 0x2a2a2a,
-            metalness: 0.8,
-            roughness: 0.3
-        }),
-        gasPedal: new THREE.MeshStandardMaterial({
-            color: 0x4a4a4a,
-            metalness: 0.6,
-            roughness: 0.4
-        }),
-        brakePedal: new THREE.MeshStandardMaterial({
-            color: 0x8b0000,
-            metalness: 0.5,
-            roughness: 0.5
-        }),
-        arm: new THREE.MeshStandardMaterial({
-            color: 0x1a1a1a,
-            metalness: 0.9,
-            roughness: 0.2
-        }),
-        pivot: new THREE.MeshStandardMaterial({
-            color: 0x3a3a3a,
-            metalness: 0.95,
-            roughness: 0.1
-        })
-    };
+    const gridTexture = createGridTexture();
 
-    const mountingBar = new THREE.Mesh(
-        new THREE.BoxGeometry(
-            PEDAL_SPECS.mountingBar.width,
-            PEDAL_SPECS.mountingBar.height,
-            PEDAL_SPECS.mountingBar.depth
-        ),
-        materials.mounting
-    );
-    mountingBar.position.set(
-        PEDAL_SPECS.mountingBar.position.x,
-        PEDAL_SPECS.mountingBar.position.y,
-        PEDAL_SPECS.mountingBar.position.z
-    );
-    mountingBar.castShadow = true;
-    pedalAssembly.add(mountingBar);
+    const material = new THREE.MeshStandardMaterial({
+        color: 0x333333,
+        roughness: 0.8,
+        metalness: 0.2,
+        map: gridTexture
+    });
 
-    const gasPivot = new THREE.Mesh(
-        new THREE.CylinderGeometry(
-            PEDAL_SPECS.gas.pivot.radius,
-            PEDAL_SPECS.gas.pivot.radius,
-            PEDAL_SPECS.gas.pivot.length,
-            16
-        ),
-        materials.pivot
-    );
-    gasPivot.position.set(
-        PEDAL_SPECS.gas.pivot.position.x,
-        PEDAL_SPECS.gas.pivot.position.y,
-        PEDAL_SPECS.gas.pivot.position.z
-    );
-    gasPivot.rotation.set(
-        PEDAL_SPECS.gas.pivot.rotation.x,
-        PEDAL_SPECS.gas.pivot.rotation.y,
-        PEDAL_SPECS.gas.pivot.rotation.z
-    );
-    gasPivot.castShadow = true;
-    pedalAssembly.add(gasPivot);
+    const ground = new THREE.Mesh(geometry, material);
+    ground.receiveShadow = true;
+    ground.position.y = 0;
 
-    const gasArm = new THREE.Mesh(
-        new THREE.CylinderGeometry(
-            PEDAL_SPECS.gas.arm.radius,
-            PEDAL_SPECS.gas.arm.radius,
-            PEDAL_SPECS.gas.arm.length,
-            12
-        ),
-        materials.arm
-    );
-    gasArm.position.set(
-        PEDAL_SPECS.gas.arm.position.x,
-        PEDAL_SPECS.gas.arm.position.y,
-        PEDAL_SPECS.gas.arm.position.z
-    );
-    gasArm.rotation.set(
-        PEDAL_SPECS.gas.arm.rotation.x,
-        PEDAL_SPECS.gas.arm.rotation.y,
-        PEDAL_SPECS.gas.arm.rotation.z
-    );
-    gasArm.castShadow = true;
-    pedalAssembly.add(gasArm);
-
-    const gasPedalPlate = new THREE.Mesh(
-        new THREE.BoxGeometry(
-            PEDAL_SPECS.gas.plate.width,
-            PEDAL_SPECS.gas.plate.height,
-            PEDAL_SPECS.gas.plate.depth
-        ),
-        materials.gasPedal
-    );
-    gasPedalPlate.position.set(
-        PEDAL_SPECS.gas.plate.position.x,
-        PEDAL_SPECS.gas.plate.position.y,
-        PEDAL_SPECS.gas.plate.position.z
-    );
-    gasPedalPlate.rotation.set(
-        PEDAL_SPECS.gas.plate.rotation.x,
-        PEDAL_SPECS.gas.plate.rotation.y,
-        PEDAL_SPECS.gas.plate.rotation.z
-    );
-    gasPedalPlate.castShadow = true;
-    pedalAssembly.add(gasPedalPlate);
-
-    const brakePivot = new THREE.Mesh(
-        new THREE.CylinderGeometry(
-            PEDAL_SPECS.brake.pivot.radius,
-            PEDAL_SPECS.brake.pivot.radius,
-            PEDAL_SPECS.brake.pivot.length,
-            16
-        ),
-        materials.pivot
-    );
-    brakePivot.position.set(
-        PEDAL_SPECS.brake.pivot.position.x,
-        PEDAL_SPECS.brake.pivot.position.y,
-        PEDAL_SPECS.brake.pivot.position.z
-    );
-    brakePivot.rotation.set(
-        PEDAL_SPECS.brake.pivot.rotation.x,
-        PEDAL_SPECS.brake.pivot.rotation.y,
-        PEDAL_SPECS.brake.pivot.rotation.z
-    );
-    brakePivot.castShadow = true;
-    pedalAssembly.add(brakePivot);
-
-    const brakeArm = new THREE.Mesh(
-        new THREE.CylinderGeometry(
-            PEDAL_SPECS.brake.arm.radius,
-            PEDAL_SPECS.brake.arm.radius,
-            PEDAL_SPECS.brake.arm.length,
-            12
-        ),
-        materials.arm
-    );
-    brakeArm.position.set(
-        PEDAL_SPECS.brake.arm.position.x,
-        PEDAL_SPECS.brake.arm.position.y,
-        PEDAL_SPECS.brake.arm.position.z
-    );
-    brakeArm.rotation.set(
-        PEDAL_SPECS.brake.arm.rotation.x,
-        PEDAL_SPECS.brake.arm.rotation.y,
-        PEDAL_SPECS.brake.arm.rotation.z
-    );
-    brakeArm.castShadow = true;
-    pedalAssembly.add(brakeArm);
-
-    const brakePedalPlate = new THREE.Mesh(
-        new THREE.BoxGeometry(
-            PEDAL_SPECS.brake.plate.width,
-            PEDAL_SPECS.brake.plate.height,
-            PEDAL_SPECS.brake.plate.depth
-        ),
-        materials.brakePedal
-    );
-    brakePedalPlate.position.set(
-        PEDAL_SPECS.brake.plate.position.x,
-        PEDAL_SPECS.brake.plate.position.y,
-        PEDAL_SPECS.brake.plate.position.z
-    );
-    brakePedalPlate.rotation.set(
-        PEDAL_SPECS.brake.plate.rotation.x,
-        PEDAL_SPECS.brake.plate.rotation.y,
-        PEDAL_SPECS.brake.plate.rotation.z
-    );
-    brakePedalPlate.castShadow = true;
-    pedalAssembly.add(brakePedalPlate);
-
-    pedalAssembly.position.set(0, PEDAL_SPECS.spacing.heightFromFloor, 0);
-
-    return { assembly: pedalAssembly, specs: PEDAL_SPECS };
+    return ground;
 }
 
-function createSeatReference() {
+function createGridTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(0, 0, 512, 512);
+
+    ctx.strokeStyle = '#404040';
+    ctx.lineWidth = 2;
+
+    const gridSize = 50;
+    const step = 512 / gridSize;
+
+    for (let i = 0; i <= gridSize; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * step, 0);
+        ctx.lineTo(i * step, 512);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, i * step);
+        ctx.lineTo(512, i * step);
+        ctx.stroke();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(100, 100);
+
+    return texture;
+}
+
+function createWheel() {
+    const wheelGroup = new THREE.Group();
+
+    const tireMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1a1a1a,
+        roughness: 0.95,
+        metalness: 0.0
+    });
+
+    const rimMaterial = new THREE.MeshStandardMaterial({
+        color: 0xc0c0c0,
+        roughness: 0.3,
+        metalness: 0.8
+    });
+
+    const tireGeometry = new THREE.TorusGeometry(0.125, 0.04, 16, 32);
+    const tire = new THREE.Mesh(tireGeometry, tireMaterial);
+    tire.rotation.y = Math.PI / 2;
+    tire.castShadow = true;
+    tire.receiveShadow = true;
+
+    const rimGeometry = new THREE.CylinderGeometry(0.075, 0.075, 0.05, 32);
+    const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+    rim.rotation.z = Math.PI / 2;
+    rim.castShadow = true;
+
+    wheelGroup.add(tire);
+    wheelGroup.add(rim);
+
+    return wheelGroup;
+}
+
+function createFrame() {
+    const frameGroup = new THREE.Group();
+
+    const frameMaterial = new THREE.MeshStandardMaterial({
+        color: 0xc41e3a,
+        roughness: 0.3,
+        metalness: 0.7
+    });
+
+    const tubeRadius = 0.015;
+    const segments = 8;
+
+    const leftRail = new THREE.Mesh(
+        new THREE.CylinderGeometry(tubeRadius, tubeRadius, 1.2, segments),
+        frameMaterial
+    );
+    leftRail.rotation.z = Math.PI / 2;
+    leftRail.position.set(-0.275, 0.08, 0);
+    leftRail.castShadow = true;
+    frameGroup.add(leftRail);
+
+    const rightRail = new THREE.Mesh(
+        new THREE.CylinderGeometry(tubeRadius, tubeRadius, 1.2, segments),
+        frameMaterial
+    );
+    rightRail.rotation.z = Math.PI / 2;
+    rightRail.position.set(0.275, 0.08, 0);
+    rightRail.castShadow = true;
+    frameGroup.add(rightRail);
+
+    const frontCross = new THREE.Mesh(
+        new THREE.CylinderGeometry(tubeRadius, tubeRadius, 0.55, segments),
+        frameMaterial
+    );
+    frontCross.rotation.z = Math.PI / 2;
+    frontCross.rotation.y = Math.PI / 2;
+    frontCross.position.set(0, 0.08, 0.5);
+    frontCross.castShadow = true;
+    frameGroup.add(frontCross);
+
+    const rearCross = new THREE.Mesh(
+        new THREE.CylinderGeometry(tubeRadius * 1.2, tubeRadius * 1.2, 0.6, segments),
+        frameMaterial
+    );
+    rearCross.rotation.z = Math.PI / 2;
+    rearCross.rotation.y = Math.PI / 2;
+    rearCross.position.set(0, 0.08, -0.52);
+    rearCross.castShadow = true;
+    frameGroup.add(rearCross);
+
+    const midCross1 = new THREE.Mesh(
+        new THREE.CylinderGeometry(tubeRadius * 0.9, tubeRadius * 0.9, 0.5, segments),
+        frameMaterial
+    );
+    midCross1.rotation.z = Math.PI / 2;
+    midCross1.rotation.y = Math.PI / 2;
+    midCross1.position.set(0, 0.08, -0.1);
+    midCross1.castShadow = true;
+    frameGroup.add(midCross1);
+
+    const rollBarLeft = new THREE.Mesh(
+        new THREE.CylinderGeometry(tubeRadius * 1.1, tubeRadius * 1.1, 0.4, segments),
+        frameMaterial
+    );
+    rollBarLeft.position.set(-0.15, 0.28, -0.15);
+    rollBarLeft.castShadow = true;
+    frameGroup.add(rollBarLeft);
+
+    const rollBarRight = new THREE.Mesh(
+        new THREE.CylinderGeometry(tubeRadius * 1.1, tubeRadius * 1.1, 0.4, segments),
+        frameMaterial
+    );
+    rollBarRight.position.set(0.15, 0.28, -0.15);
+    rollBarRight.castShadow = true;
+    frameGroup.add(rollBarRight);
+
+    const rollBarTop = new THREE.Mesh(
+        new THREE.CylinderGeometry(tubeRadius * 1.1, tubeRadius * 1.1, 0.3, segments),
+        frameMaterial
+    );
+    rollBarTop.rotation.z = Math.PI / 2;
+    rollBarTop.rotation.y = Math.PI / 2;
+    rollBarTop.position.set(0, 0.48, -0.15);
+    rollBarTop.castShadow = true;
+    frameGroup.add(rollBarTop);
+
+    return frameGroup;
+}
+
+function createSeat() {
     const seatGroup = new THREE.Group();
 
-    const seatBase = new THREE.Mesh(
-        new THREE.BoxGeometry(0.35, 0.08, 0.35),
-        new THREE.MeshStandardMaterial({
-            color: 0x1a1a1a,
-            metalness: 0.3,
-            roughness: 0.7,
-            transparent: true,
-            opacity: 0.3
-        })
-    );
-    seatBase.position.set(0, 0.15, -0.45);
-    seatGroup.add(seatBase);
+    const seatMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1a1a1a,
+        roughness: 0.8,
+        metalness: 0.0
+    });
 
-    const seatBack = new THREE.Mesh(
-        new THREE.BoxGeometry(0.35, 0.4, 0.08),
-        new THREE.MeshStandardMaterial({
-            color: 0x1a1a1a,
-            metalness: 0.3,
-            roughness: 0.7,
-            transparent: true,
-            opacity: 0.3
-        })
-    );
-    seatBack.position.set(0, 0.35, -0.625);
-    seatGroup.add(seatBack);
+    const baseGeometry = new THREE.BoxGeometry(0.35, 0.05, 0.40);
+    const baseMesh = new THREE.Mesh(baseGeometry, seatMaterial);
+    baseMesh.position.set(0, 0, 0);
+    baseMesh.castShadow = true;
+    seatGroup.add(baseMesh);
+
+    const backGeometry = new THREE.BoxGeometry(0.35, 0.4, 0.05);
+    const backMesh = new THREE.Mesh(backGeometry, seatMaterial);
+    backMesh.position.set(0, 0.15, -0.175);
+    backMesh.rotation.x = -0.26;
+    backMesh.castShadow = true;
+    seatGroup.add(backMesh);
+
+    const bolsterGeometry = new THREE.BoxGeometry(0.05, 0.25, 0.30);
+
+    const leftBolster = new THREE.Mesh(bolsterGeometry, seatMaterial);
+    leftBolster.position.set(-0.18, 0.08, -0.05);
+    leftBolster.rotation.x = -0.175;
+    leftBolster.castShadow = true;
+    seatGroup.add(leftBolster);
+
+    const rightBolster = new THREE.Mesh(bolsterGeometry, seatMaterial);
+    rightBolster.position.set(0.18, 0.08, -0.05);
+    rightBolster.rotation.x = -0.175;
+    rightBolster.castShadow = true;
+    seatGroup.add(rightBolster);
+
+    seatGroup.position.set(0, 0.15, -0.1);
 
     return seatGroup;
 }
 
+function createSteeringWheel() {
+    const wheelGroup = new THREE.Group();
+
+    const rimMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1a1a1a,
+        roughness: 0.7,
+        metalness: 0.0
+    });
+
+    const spokeMaterial = new THREE.MeshStandardMaterial({
+        color: 0x2a2a2a,
+        roughness: 0.4,
+        metalness: 0.6
+    });
+
+    const hubMaterial = new THREE.MeshStandardMaterial({
+        color: 0x333333,
+        roughness: 0.3,
+        metalness: 0.7
+    });
+
+    const columnMaterial = new THREE.MeshStandardMaterial({
+        color: 0x404040,
+        roughness: 0.2,
+        metalness: 0.8
+    });
+
+    const rimGeometry = new THREE.TorusGeometry(0.14, 0.012, 16, 32);
+    const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+    rim.castShadow = true;
+    wheelGroup.add(rim);
+
+    const spokeGeometry = new THREE.CylinderGeometry(0.006, 0.006, 0.12, 8);
+    const spokeCount = 3;
+
+    for (let i = 0; i < spokeCount; i++) {
+        const spoke = new THREE.Mesh(spokeGeometry, spokeMaterial);
+        const angle = (i / spokeCount) * Math.PI * 2;
+        const distance = 0.07;
+
+        spoke.position.x = Math.cos(angle) * distance;
+        spoke.position.z = Math.sin(angle) * distance;
+        spoke.rotation.z = -angle;
+        spoke.rotation.x = Math.PI / 2;
+        spoke.castShadow = true;
+
+        wheelGroup.add(spoke);
+    }
+
+    const hubGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.025, 32);
+    const hub = new THREE.Mesh(hubGeometry, hubMaterial);
+    hub.rotation.x = Math.PI / 2;
+    hub.castShadow = true;
+    wheelGroup.add(hub);
+
+    const columnGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.25, 12);
+    const column = new THREE.Mesh(columnGeometry, columnMaterial);
+    column.position.y = -0.125;
+    column.castShadow = true;
+    wheelGroup.add(column);
+
+    wheelGroup.position.set(0, 0.42, 0.25);
+    wheelGroup.rotation.x = -0.44;
+
+    return wheelGroup;
+}
+
+function createPedals() {
+    const pedalGroup = new THREE.Group();
+
+    const mountMaterial = new THREE.MeshStandardMaterial({
+        color: 0x2a2a2a,
+        metalness: 0.8,
+        roughness: 0.3
+    });
+
+    const gasPedalMaterial = new THREE.MeshStandardMaterial({
+        color: 0x4a4a4a,
+        metalness: 0.6,
+        roughness: 0.4
+    });
+
+    const brakePedalMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8b0000,
+        metalness: 0.5,
+        roughness: 0.5
+    });
+
+    const mount = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.015, 0.015),
+        mountMaterial
+    );
+    mount.castShadow = true;
+    pedalGroup.add(mount);
+
+    const gasPedal = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.08, 0.01),
+        gasPedalMaterial
+    );
+    gasPedal.position.set(0.08, -0.08, 0.04);
+    gasPedal.rotation.x = 0.52;
+    gasPedal.castShadow = true;
+    pedalGroup.add(gasPedal);
+
+    const brakePedal = new THREE.Mesh(
+        new THREE.BoxGeometry(0.07, 0.1, 0.01),
+        brakePedalMaterial
+    );
+    brakePedal.position.set(-0.08, -0.08, 0.04);
+    brakePedal.rotation.x = 0.52;
+    brakePedal.castShadow = true;
+    pedalGroup.add(brakePedal);
+
+    pedalGroup.position.set(0, 0.08, 0.45);
+
+    return pedalGroup;
+}
+
+function createKart() {
+    const kartGroup = new THREE.Group();
+
+    const frame = createFrame();
+    kartGroup.add(frame);
+
+    const frontLeftWheel = createWheel();
+    frontLeftWheel.position.set(-0.275, 0.125, 0.52);
+    kartGroup.add(frontLeftWheel);
+
+    const frontRightWheel = createWheel();
+    frontRightWheel.position.set(0.275, 0.125, 0.52);
+    kartGroup.add(frontRightWheel);
+
+    const rearLeftWheel = createWheel();
+    rearLeftWheel.position.set(-0.288, 0.125, -0.52);
+    kartGroup.add(rearLeftWheel);
+
+    const rearRightWheel = createWheel();
+    rearRightWheel.position.set(0.288, 0.125, -0.52);
+    kartGroup.add(rearRightWheel);
+
+    const seat = createSeat();
+    kartGroup.add(seat);
+
+    const steeringWheel = createSteeringWheel();
+    kartGroup.add(steeringWheel);
+
+    const pedals = createPedals();
+    kartGroup.add(pedals);
+
+    return kartGroup;
+}
+
 function init() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a0a);
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 100, 500);
 
     camera = new THREE.PerspectiveCamera(
         60,
         window.innerWidth / window.innerHeight,
-        0.01,
+        0.1,
         1000
     );
-    camera.position.set(0.6, 0.3, 0.6);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(3, 2, 4);
+    camera.lookAt(0, 0.5, 0);
 
     renderer = new THREE.WebGLRenderer({
         canvas: canvas,
         antialias: true
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
 
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.target.set(0, 0.1, 0);
+    controls.target.set(0, 0.3, 0);
+    controls.minDistance = 1.5;
+    controls.maxDistance = 20;
+    controls.minPolarAngle = Math.PI / 6;
+    controls.maxPolarAngle = Math.PI / 2.2;
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
 
-    const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    mainLight.position.set(1, 2, 1);
-    mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 2048;
-    mainLight.shadow.mapSize.height = 2048;
-    mainLight.shadow.camera.near = 0.1;
-    mainLight.shadow.camera.far = 10;
-    mainLight.shadow.camera.left = -2;
-    mainLight.shadow.camera.right = 2;
-    mainLight.shadow.camera.top = 2;
-    mainLight.shadow.camera.bottom = -2;
-    scene.add(mainLight);
+    const hemisphereLight = new THREE.HemisphereLight(0x87ceeb, 0x8b7355, 0.3);
+    scene.add(hemisphereLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-    fillLight.position.set(-1, 0.5, -1);
+    const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+    sun.position.set(50, 80, 40);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 2048;
+    sun.shadow.mapSize.height = 2048;
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 200;
+    sun.shadow.camera.left = -20;
+    sun.shadow.camera.right = 20;
+    sun.shadow.camera.top = 20;
+    sun.shadow.camera.bottom = -20;
+    sun.shadow.bias = -0.0001;
+    sun.shadow.normalBias = 0.02;
+    scene.add(sun);
+
+    const rimLight = new THREE.DirectionalLight(0xfff5e6, 0.5);
+    rimLight.position.set(-40, 60, -50);
+    scene.add(rimLight);
+
+    const fillLight = new THREE.DirectionalLight(0xe6f2ff, 0.3);
+    fillLight.position.set(0, -20, 30);
     scene.add(fillLight);
 
-    const floor = new THREE.Mesh(
-        new THREE.PlaneGeometry(10, 10),
-        new THREE.MeshStandardMaterial({
-            color: 0x1a1a1a,
-            metalness: 0.1,
-            roughness: 0.9
-        })
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
-    floor.receiveShadow = true;
-    scene.add(floor);
+    const ground = createGroundPlane();
+    scene.add(ground);
 
-    const { assembly: pedals, specs } = createPedalGeometry();
-    scene.add(pedals);
+    const kart = createKart();
+    scene.add(kart);
 
-    const seatRef = createSeatReference();
-    scene.add(seatRef);
-
-    const gridHelper = new THREE.GridHelper(2, 20, 0x333333, 0x222222);
-    scene.add(gridHelper);
-
-    console.log('Kart Pedal Geometry Specifications:');
-    console.log('===================================');
-    console.log('Mounting Bar:', specs.mountingBar);
-    console.log('Gas Pedal:', specs.gas);
-    console.log('Brake Pedal:', specs.brake);
-    console.log('Spacing:', specs.spacing);
-    console.log('\nMeasurements in meters (scale for visualization)');
+    console.log('3D Kart Racing Game Initialized');
+    console.log('Ground: 10km x 10km plane');
+    console.log('Kart components: Frame, Wheels (torus-based), Seat, Steering, Pedals');
+    console.log('Controls: Drag to rotate, Scroll to zoom');
 
     animate();
 }
