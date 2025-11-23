@@ -750,12 +750,12 @@ function animate() {
     const time = Date.now() * 0.001;
 
     if (engineMesh) {
-        const engineScale = 1.0 + Math.sin(time * 8) * 0.08;
+        const engineScale = 1.0 + Math.sin(time * 35) * 0.08;
         engineMesh.scale.set(engineScale, engineScale, engineScale);
     }
 
     if (exhaustMeshes.length > 0) {
-        const exhaustScale = 1.0 + Math.sin(time * 8 + Math.PI * 0.3) * 0.12;
+        const exhaustScale = 1.0 + Math.sin(time * 35 + Math.PI * 0.3) * 0.12;
         exhaustMeshes.forEach(exhaust => {
             exhaust.scale.set(exhaustScale, exhaustScale, exhaustScale);
         });
