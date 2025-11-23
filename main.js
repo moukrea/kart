@@ -637,9 +637,18 @@ function createKart() {
 }
 
 function setupEngineVisibilityControls() {
-    if (!engineMesh || !engineMesh.material) return;
+    if (!engineMesh || !engineMesh.material) {
+        console.error('Cannot setup controls: engineMesh or material missing');
+        return;
+    }
 
     const materials = Array.isArray(engineMesh.material) ? engineMesh.material : [engineMesh.material];
+
+    console.log('=== SETUP ENGINE VISIBILITY CONTROLS ===');
+    console.log('Total materials:', materials.length);
+    materials.forEach((mat, idx) => {
+        console.log(`  Material ${idx}: "${mat.name}" (opacity: ${mat.opacity}, transparent: ${mat.transparent})`);
+    });
 
     // Map material names to their material objects
     const materialMap = {};
@@ -647,6 +656,7 @@ function setupEngineVisibilityControls() {
         if (mat.name) {
             const name = mat.name.toLowerCase();
             materialMap[name] = mat;
+            console.log(`Mapped: "${name}" -> material object`);
         }
     });
 
@@ -661,26 +671,29 @@ function setupEngineVisibilityControls() {
         { id: 'toggle-engine-casing-right', pattern: 'grey_dark_right', label: 'Engine Casing Right' }
     ];
 
+    console.log('=== WIRING UP TOGGLES ===');
     // Wire up each toggle
     toggleConfig.forEach(config => {
         const toggle = document.getElementById(config.id);
         const material = materialMap[config.pattern];
 
+        console.log(`Toggle "${config.id}": element ${toggle ? 'found' : 'NOT FOUND'}, material "${config.pattern}": ${material ? 'found' : 'NOT FOUND'}`);
+
         if (toggle && material) {
             toggle.addEventListener('change', (e) => {
                 material.opacity = e.target.checked ? 1.0 : 0.0;
                 material.transparent = !e.target.checked;
-                console.log(`${config.label} visibility:`, e.target.checked);
+                console.log(`${config.label} visibility:`, e.target.checked, `(opacity: ${material.opacity})`);
             });
-            console.log(`✓ ${config.label} control wired up`);
+            console.log(`✓ ${config.label} control wired up successfully`);
         } else {
-            if (!toggle) console.warn(`✗ Toggle not found: ${config.id}`);
-            if (!material) console.warn(`✗ Material not found: ${config.pattern}`);
+            if (!toggle) console.warn(`✗ Toggle HTML element not found: ${config.id}`);
+            if (!material) console.warn(`✗ Material not found in map: ${config.pattern}`);
         }
     });
 
-    console.log('Engine visibility controls initialized');
-    console.log('Available materials:', Object.keys(materialMap));
+    console.log('=== CONTROLS SETUP COMPLETE ===');
+    console.log('Available material names:', Object.keys(materialMap));
 }
 
 function init() {
@@ -853,125 +866,174 @@ function init() {
             });
 
             // Split 3 material groups into left/right, keep Engine Block whole
-            if (engineMesh && engineMesh.geometry && engineMesh.geometry.index) {
+            // Handles non-indexed BufferGeometry by reorganizing vertex attributes
+            if (engineMesh && engineMesh.geometry) {
                 try {
                     const geometry = engineMesh.geometry;
                     const materials = Array.isArray(engineMesh.material) ? engineMesh.material : [engineMesh.material];
-                    const positionAttr = geometry.attributes.position;
-                    const oldIndex = geometry.index.array;
-                    const oldGroups = geometry.groups.slice();
+                    const sourceGroups = geometry.groups;
 
-                    console.log('Starting geometry split:', oldGroups.length, 'groups,', oldIndex.length, 'indices');
-
-                    // Build new index buffer with reorganized triangles
-                    const newIndexArray = [];
-                    const newMaterials = [];
-                    const newGroupsData = [];
-
-                    oldGroups.forEach((group, groupIndex) => {
-                        const mat = materials[group.materialIndex];
-                        const matName = mat ? (mat.name ? mat.name.toLowerCase() : '') : '';
-
-                        // Engine Block (grey_lght): keep whole
-                        if (matName === 'grey_lght') {
-                            const groupStart = newIndexArray.length;
-                            for (let i = group.start; i < group.start + group.count; i++) {
-                                newIndexArray.push(oldIndex[i]);
-                            }
-                            newGroupsData.push({
-                                start: groupStart,
-                                count: group.count,
-                                materialIndex: newMaterials.length,
-                                name: matName
-                            });
-                            newMaterials.push(mat);
-                            console.log(`  Group ${groupIndex}: ${matName} - kept whole (${group.count / 3} faces)`);
-                        } else {
-                            // Split this group into left/right based on vertex X position
-                            const leftIndices = [];
-                            const rightIndices = [];
-
-                            // Analyze each triangle in this group
-                            for (let i = group.start; i < group.start + group.count; i += 3) {
-                                const v1Idx = oldIndex[i];
-                                const v2Idx = oldIndex[i + 1];
-                                const v3Idx = oldIndex[i + 2];
-
-                                const x1 = positionAttr.getX(v1Idx);
-                                const x2 = positionAttr.getX(v2Idx);
-                                const x3 = positionAttr.getX(v3Idx);
-
-                                const avgX = (x1 + x2 + x3) / 3;
-
-                                if (avgX < 0) {
-                                    leftIndices.push(v1Idx, v2Idx, v3Idx);
-                                } else {
-                                    rightIndices.push(v1Idx, v2Idx, v3Idx);
-                                }
-                            }
-
-                            // Add left group
-                            if (leftIndices.length > 0) {
-                                const groupStart = newIndexArray.length;
-                                leftIndices.forEach(idx => newIndexArray.push(idx));
-                                newGroupsData.push({
-                                    start: groupStart,
-                                    count: leftIndices.length,
-                                    materialIndex: newMaterials.length,
-                                    name: matName + '_left'
-                                });
-                                const leftMat = mat.clone();
-                                leftMat.name = mat.name + '_left';
-                                newMaterials.push(leftMat);
-                                console.log(`  Group ${groupIndex}: ${matName}_left - (${leftIndices.length / 3} faces)`);
-                            }
-
-                            // Add right group
-                            if (rightIndices.length > 0) {
-                                const groupStart = newIndexArray.length;
-                                rightIndices.forEach(idx => newIndexArray.push(idx));
-                                newGroupsData.push({
-                                    start: groupStart,
-                                    count: rightIndices.length,
-                                    materialIndex: newMaterials.length,
-                                    name: matName + '_right'
-                                });
-                                const rightMat = mat.clone();
-                                rightMat.name = mat.name + '_right';
-                                newMaterials.push(rightMat);
-                                console.log(`  Group ${groupIndex}: ${matName}_right - (${rightIndices.length / 3} faces)`);
-                            }
-                        }
-                    });
-
-                    // Validate
-                    if (newIndexArray.length !== oldIndex.length) {
-                        throw new Error(`Index count mismatch: ${oldIndex.length} -> ${newIndexArray.length}`);
+                    // Geometry must be non-indexed for this algorithm
+                    if (geometry.index !== null) {
+                        console.warn('Geometry has index buffer - non-indexed algorithm not applicable');
+                        throw new Error('Expected non-indexed geometry');
                     }
 
-                    // Update geometry with new index buffer and groups
-                    const IndexArrayType = oldIndex.constructor;
-                    const newTypedArray = new IndexArrayType(newIndexArray);
-                    geometry.setIndex(new THREE.BufferAttribute(newTypedArray, 1));
+                    console.log('Starting non-indexed geometry split:', sourceGroups.length, 'groups');
 
-                    geometry.clearGroups();
-                    newGroupsData.forEach(g => {
-                        geometry.addGroup(g.start, g.count, g.materialIndex);
+                    // Get all attributes
+                    const attributeNames = Object.keys(geometry.attributes);
+                    const positionAttr = geometry.attributes.position;
+
+                    // Initialize collectors for each group and side
+                    const collectors = sourceGroups.map(() => ({
+                        whole: {},
+                        left: {},
+                        right: {}
+                    }));
+
+                    attributeNames.forEach(attrName => {
+                        collectors.forEach(c => {
+                            c.whole[attrName] = [];
+                            c.left[attrName] = [];
+                            c.right[attrName] = [];
+                        });
                     });
 
+                    // Process each group
+                    for (let groupIdx = 0; groupIdx < sourceGroups.length; groupIdx++) {
+                        const group = sourceGroups[groupIdx];
+                        const mat = materials[group.materialIndex];
+                        const matName = mat ? (mat.name ? mat.name.toLowerCase() : '') : '';
+                        const startVertex = group.start;
+                        const vertexCount = group.count;
+
+                        // Process each triangle
+                        for (let v = startVertex; v < startVertex + vertexCount; v += 3) {
+                            // Calculate centroid X
+                            const x0 = positionAttr.getX(v);
+                            const x1 = positionAttr.getX(v + 1);
+                            const x2 = positionAttr.getX(v + 2);
+                            const centroidX = (x0 + x1 + x2) / 3;
+
+                            // Determine side
+                            const side = centroidX < 0 ? 'left' : 'right';
+
+                            // Collect all attributes for this triangle
+                            for (const attrName of attributeNames) {
+                                const attr = geometry.attributes[attrName];
+                                const itemSize = attr.itemSize;
+                                const array = attr.array;
+
+                                // Copy 3 vertices (triangle)
+                                for (let vi = 0; vi < 3; vi++) {
+                                    const vertexIdx = v + vi;
+                                    for (let comp = 0; comp < itemSize; comp++) {
+                                        const value = array[vertexIdx * itemSize + comp];
+                                        collectors[groupIdx][side][attrName].push(value);
+
+                                        // Engine Block also goes to "whole"
+                                        if (matName === 'grey_lght') {
+                                            collectors[groupIdx].whole[attrName].push(value);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Build new geometry
+                    const newGeometry = new THREE.BufferGeometry();
+                    const newMaterials = [];
+                    let vertexOffset = 0;
+
+                    // Group order: Engine Block (whole), then left/right for other 3 groups
+                    const buildOrder = [
+                        { groupIdx: 0, side: 'whole', suffix: '' },      // grey_lght
+                        { groupIdx: 1, side: 'left', suffix: '_left' },  // gunmetal_light_left
+                        { groupIdx: 1, side: 'right', suffix: '_right' }, // gunmetal_light_right
+                        { groupIdx: 2, side: 'left', suffix: '_left' },  // gunmetal_dark_left
+                        { groupIdx: 2, side: 'right', suffix: '_right' }, // gunmetal_dark_right
+                        { groupIdx: 3, side: 'left', suffix: '_left' },  // grey_dark_left
+                        { groupIdx: 3, side: 'right', suffix: '_right' }  // grey_dark_right
+                    ];
+
+                    // Allocate buffers
+                    const newAttributes = {};
+                    for (const attrName of attributeNames) {
+                        const sourceAttr = geometry.attributes[attrName];
+                        let totalComponents = 0;
+
+                        for (const config of buildOrder) {
+                            const collector = collectors[config.groupIdx][config.side];
+                            totalComponents += collector[attrName].length;
+                        }
+
+                        const ArrayType = sourceAttr.array.constructor;
+                        newAttributes[attrName] = {
+                            array: new ArrayType(totalComponents),
+                            itemSize: sourceAttr.itemSize,
+                            normalized: sourceAttr.normalized || false
+                        };
+                    }
+
+                    // Copy data and create groups
+                    const writeOffsets = {};
+                    attributeNames.forEach(name => writeOffsets[name] = 0);
+
+                    for (const config of buildOrder) {
+                        const collector = collectors[config.groupIdx][config.side];
+                        const mat = materials[config.groupIdx];
+
+                        // Calculate vertex count for this group
+                        const groupVertexCount = collector.position.length / positionAttr.itemSize;
+
+                        if (groupVertexCount > 0) {
+                            // Copy attributes
+                            for (const attrName of attributeNames) {
+                                const sourceData = collector[attrName];
+                                const targetArray = newAttributes[attrName].array;
+                                const offset = writeOffsets[attrName];
+
+                                for (let i = 0; i < sourceData.length; i++) {
+                                    targetArray[offset + i] = sourceData[i];
+                                }
+
+                                writeOffsets[attrName] += sourceData.length;
+                            }
+
+                            // Add group
+                            newGeometry.addGroup(vertexOffset, groupVertexCount, newMaterials.length);
+
+                            // Clone material
+                            const newMat = mat.clone();
+                            newMat.name = mat.name + config.suffix;
+                            newMaterials.push(newMat);
+
+                            console.log(`  Group ${config.groupIdx}${config.suffix}: ${groupVertexCount / 3} triangles`);
+
+                            vertexOffset += groupVertexCount;
+                        }
+                    }
+
+                    // Set attributes on new geometry
+                    for (const attrName of attributeNames) {
+                        const attrData = newAttributes[attrName];
+                        newGeometry.setAttribute(attrName,
+                            new THREE.BufferAttribute(attrData.array, attrData.itemSize, attrData.normalized)
+                        );
+                    }
+
+                    // Replace geometry
+                    engineMesh.geometry.dispose();
+                    engineMesh.geometry = newGeometry;
                     engineMesh.material = newMaterials;
-                    console.log(`Geometry rebuilt: ${oldGroups.length} groups -> ${newMaterials.length} groups`);
-                    console.log('New index buffer:', newTypedArray.length, 'indices');
-                    console.log('Groups:', geometry.groups);
+
+                    console.log(`Geometry rebuilt: ${sourceGroups.length} groups -> ${newMaterials.length} groups`);
+                    console.log('New material names:', newMaterials.map(m => m.name));
                 } catch (error) {
                     console.error('Error splitting geometry groups:', error);
                     console.error('Skipping geometry split, using original');
-                }
-            } else {
-                console.log('Engine mesh:', engineMesh ? 'found' : 'not found');
-                if (engineMesh) {
-                    console.log('Geometry:', engineMesh.geometry ? 'found' : 'not found');
-                    console.log('Index:', engineMesh.geometry?.index ? 'found' : 'not found');
                 }
             }
 
