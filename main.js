@@ -857,102 +857,113 @@ function init() {
 
             // Split 3 material groups into left/right, keep Engine Block whole
             if (engineMesh) {
-                const geometry = engineMesh.geometry;
-                const materials = Array.isArray(engineMesh.material) ? engineMesh.material : [engineMesh.material];
-                const positionAttr = geometry.attributes.position;
-                const oldIndex = geometry.index.array;
-                const oldGroups = geometry.groups.slice();
+                try {
+                    const geometry = engineMesh.geometry;
+                    const materials = Array.isArray(engineMesh.material) ? engineMesh.material : [engineMesh.material];
 
-                // Build new index buffer with reorganized triangles
-                const newIndexArray = [];
-                const newMaterials = [];
-                const newGroupsData = [];
+                    if (!geometry.index) {
+                        console.error('Geometry has no index buffer - cannot split groups');
+                        return;
+                    }
 
-                oldGroups.forEach((group, groupIndex) => {
-                    const mat = materials[group.materialIndex];
-                    const matName = mat ? (mat.name ? mat.name.toLowerCase() : '') : '';
+                    const positionAttr = geometry.attributes.position;
+                    const oldIndex = geometry.index.array;
+                    const oldGroups = geometry.groups.slice();
 
-                    // Engine Block (grey_lght): keep whole
-                    if (matName === 'grey_lght') {
-                        const groupStart = newIndexArray.length;
-                        for (let i = group.start; i < group.start + group.count; i++) {
-                            newIndexArray.push(oldIndex[i]);
-                        }
-                        newGroupsData.push({
-                            start: groupStart,
-                            count: group.count,
-                            materialIndex: newMaterials.length,
-                            name: matName
-                        });
-                        newMaterials.push(mat);
-                        console.log(`Group ${groupIndex}: ${matName} - kept whole (${group.count / 3} faces)`);
-                    } else {
-                        // Split this group into left/right based on vertex X position
-                        const leftIndices = [];
-                        const rightIndices = [];
+                    // Build new index buffer with reorganized triangles
+                    const newIndexArray = [];
+                    const newMaterials = [];
+                    const newGroupsData = [];
 
-                        // Analyze each triangle in this group
-                        for (let i = group.start; i < group.start + group.count; i += 3) {
-                            const v1Idx = oldIndex[i];
-                            const v2Idx = oldIndex[i + 1];
-                            const v3Idx = oldIndex[i + 2];
+                    oldGroups.forEach((group, groupIndex) => {
+                        const mat = materials[group.materialIndex];
+                        const matName = mat ? (mat.name ? mat.name.toLowerCase() : '') : '';
 
-                            const x1 = positionAttr.getX(v1Idx);
-                            const x2 = positionAttr.getX(v2Idx);
-                            const x3 = positionAttr.getX(v3Idx);
+                        // Engine Block (grey_lght): keep whole
+                        if (matName === 'grey_lght') {
+                            const groupStart = newIndexArray.length;
+                            for (let i = group.start; i < group.start + group.count; i++) {
+                                newIndexArray.push(oldIndex[i]);
+                            }
+                            newGroupsData.push({
+                                start: groupStart,
+                                count: group.count,
+                                materialIndex: newMaterials.length,
+                                name: matName
+                            });
+                            newMaterials.push(mat);
+                            console.log(`Group ${groupIndex}: ${matName} - kept whole (${group.count / 3} faces)`);
+                        } else {
+                            // Split this group into left/right based on vertex X position
+                            const leftIndices = [];
+                            const rightIndices = [];
 
-                            const avgX = (x1 + x2 + x3) / 3;
+                            // Analyze each triangle in this group
+                            for (let i = group.start; i < group.start + group.count; i += 3) {
+                                const v1Idx = oldIndex[i];
+                                const v2Idx = oldIndex[i + 1];
+                                const v3Idx = oldIndex[i + 2];
 
-                            if (avgX < 0) {
-                                leftIndices.push(v1Idx, v2Idx, v3Idx);
-                            } else {
-                                rightIndices.push(v1Idx, v2Idx, v3Idx);
+                                const x1 = positionAttr.getX(v1Idx);
+                                const x2 = positionAttr.getX(v2Idx);
+                                const x3 = positionAttr.getX(v3Idx);
+
+                                const avgX = (x1 + x2 + x3) / 3;
+
+                                if (avgX < 0) {
+                                    leftIndices.push(v1Idx, v2Idx, v3Idx);
+                                } else {
+                                    rightIndices.push(v1Idx, v2Idx, v3Idx);
+                                }
+                            }
+
+                            // Add left group
+                            if (leftIndices.length > 0) {
+                                const groupStart = newIndexArray.length;
+                                leftIndices.forEach(idx => newIndexArray.push(idx));
+                                newGroupsData.push({
+                                    start: groupStart,
+                                    count: leftIndices.length,
+                                    materialIndex: newMaterials.length,
+                                    name: matName + '_left'
+                                });
+                                const leftMat = mat.clone();
+                                leftMat.name = mat.name + '_left';
+                                newMaterials.push(leftMat);
+                                console.log(`Group ${groupIndex}: ${matName}_left - (${leftIndices.length / 3} faces)`);
+                            }
+
+                            // Add right group
+                            if (rightIndices.length > 0) {
+                                const groupStart = newIndexArray.length;
+                                rightIndices.forEach(idx => newIndexArray.push(idx));
+                                newGroupsData.push({
+                                    start: groupStart,
+                                    count: rightIndices.length,
+                                    materialIndex: newMaterials.length,
+                                    name: matName + '_right'
+                                });
+                                const rightMat = mat.clone();
+                                rightMat.name = mat.name + '_right';
+                                newMaterials.push(rightMat);
+                                console.log(`Group ${groupIndex}: ${matName}_right - (${rightIndices.length / 3} faces)`);
                             }
                         }
+                    });
 
-                        // Add left group
-                        if (leftIndices.length > 0) {
-                            const groupStart = newIndexArray.length;
-                            leftIndices.forEach(idx => newIndexArray.push(idx));
-                            newGroupsData.push({
-                                start: groupStart,
-                                count: leftIndices.length,
-                                materialIndex: newMaterials.length,
-                                name: matName + '_left'
-                            });
-                            const leftMat = mat.clone();
-                            leftMat.name = mat.name + '_left';
-                            newMaterials.push(leftMat);
-                            console.log(`Group ${groupIndex}: ${matName}_left - (${leftIndices.length / 3} faces)`);
-                        }
+                    // Update geometry with new index buffer and groups
+                    const indexType = oldIndex.constructor;
+                    geometry.setIndex(new THREE.BufferAttribute(new indexType(newIndexArray), 1));
+                    geometry.clearGroups();
+                    newGroupsData.forEach(g => {
+                        geometry.addGroup(g.start, g.count, g.materialIndex);
+                    });
 
-                        // Add right group
-                        if (rightIndices.length > 0) {
-                            const groupStart = newIndexArray.length;
-                            rightIndices.forEach(idx => newIndexArray.push(idx));
-                            newGroupsData.push({
-                                start: groupStart,
-                                count: rightIndices.length,
-                                materialIndex: newMaterials.length,
-                                name: matName + '_right'
-                            });
-                            const rightMat = mat.clone();
-                            rightMat.name = mat.name + '_right';
-                            newMaterials.push(rightMat);
-                            console.log(`Group ${groupIndex}: ${matName}_right - (${rightIndices.length / 3} faces)`);
-                        }
-                    }
-                });
-
-                // Update geometry with new index buffer and groups
-                geometry.setIndex(newIndexArray);
-                geometry.clearGroups();
-                newGroupsData.forEach(g => {
-                    geometry.addGroup(g.start, g.count, g.materialIndex);
-                });
-
-                engineMesh.material = newMaterials;
-                console.log(`Geometry rebuilt: ${oldGroups.length} groups -> ${newMaterials.length} groups`);
+                    engineMesh.material = newMaterials;
+                    console.log(`Geometry rebuilt: ${oldGroups.length} groups -> ${newMaterials.length} groups`);
+                } catch (error) {
+                    console.error('Error splitting geometry groups:', error);
+                }
             }
 
             scene.add(kart);
