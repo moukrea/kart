@@ -62,7 +62,46 @@ function createGridTexture() {
     return texture;
 }
 
-function createWheel() {
+function createConcaveHub(outerRadius, width, dishDepth) {
+    const points = [];
+    const halfWidth = width / 2;
+    const innerRadius = outerRadius * 0.35;
+
+    points.push(new THREE.Vector2(outerRadius, -halfWidth));
+    points.push(new THREE.Vector2(outerRadius * 0.95, -halfWidth + 0.003));
+
+    const curvePoints = 10;
+    for (let i = 0; i <= curvePoints; i++) {
+        const t = i / curvePoints;
+        const easeT = t * t;
+        const radius = outerRadius * 0.95 - (outerRadius * 0.95 - innerRadius) * easeT;
+        const y = -halfWidth + 0.003 + (halfWidth - 0.01) * t;
+        const dishFactor = Math.sin(t * Math.PI);
+        const concaveRadius = radius - (dishDepth * dishFactor);
+        points.push(new THREE.Vector2(concaveRadius, y));
+    }
+
+    points.push(new THREE.Vector2(innerRadius, halfWidth - 0.01));
+    points.push(new THREE.Vector2(innerRadius, halfWidth - 0.005));
+
+    for (let i = 0; i <= curvePoints; i++) {
+        const t = i / curvePoints;
+        const easeT = t * t;
+        const radius = innerRadius + (outerRadius * 0.95 - innerRadius) * easeT;
+        const y = halfWidth - 0.005 - (0.005) * t;
+        const dishFactor = Math.sin(t * Math.PI);
+        const concaveRadius = radius - (dishDepth * 0.5 * dishFactor);
+        points.push(new THREE.Vector2(concaveRadius, y));
+    }
+
+    points.push(new THREE.Vector2(outerRadius * 0.95, halfWidth));
+    points.push(new THREE.Vector2(outerRadius, halfWidth));
+
+    const geometry = new THREE.LatheGeometry(points, 32);
+    return geometry;
+}
+
+function createWheel(isFront) {
     const wheelGroup = new THREE.Group();
 
     const tireMaterial = new THREE.MeshStandardMaterial({
@@ -72,26 +111,64 @@ function createWheel() {
     });
 
     const rimMaterial = new THREE.MeshStandardMaterial({
-        color: 0xc0c0c0,
-        roughness: 0.3,
-        metalness: 0.8
+        color: 0xd4d4d4,
+        roughness: 0.25,
+        metalness: 0.85
     });
 
-    const tireGeometry = new THREE.TorusGeometry(0.125, 0.04, 16, 32);
-    const tire = new THREE.Mesh(tireGeometry, tireMaterial);
-    tire.rotation.y = Math.PI / 2;
-    tire.castShadow = true;
-    tire.receiveShadow = true;
+    if (isFront) {
+        const tireGeometry = new THREE.TorusGeometry(0.095, 0.057, 16, 32);
+        const tire = new THREE.Mesh(tireGeometry, tireMaterial);
+        tire.rotation.y = Math.PI / 2;
+        tire.castShadow = true;
+        tire.receiveShadow = true;
+        wheelGroup.add(tire);
 
-    const rimGeometry = new THREE.CylinderGeometry(0.075, 0.075, 0.05, 32);
-    const rim = new THREE.Mesh(rimGeometry, rimMaterial);
-    rim.rotation.z = Math.PI / 2;
-    rim.castShadow = true;
+        const rimGeometry = createConcaveHub(0.075, 0.065, 0.012);
+        const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+        rim.rotation.z = Math.PI / 2;
+        rim.castShadow = true;
+        wheelGroup.add(rim);
+    } else {
+        const tireGeometry = new THREE.TorusGeometry(0.101, 0.069, 16, 32);
+        const tire = new THREE.Mesh(tireGeometry, tireMaterial);
+        tire.rotation.y = Math.PI / 2;
+        tire.castShadow = true;
+        tire.receiveShadow = true;
+        wheelGroup.add(tire);
 
-    wheelGroup.add(tire);
-    wheelGroup.add(rim);
+        const rimGeometry = createConcaveHub(0.085, 0.08, 0.015);
+        const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+        rim.rotation.z = Math.PI / 2;
+        rim.castShadow = true;
+        wheelGroup.add(rim);
+    }
 
     return wheelGroup;
+}
+
+function createStraightTube(start, end, radius, material) {
+    const direction = new THREE.Vector3().subVectors(end, start);
+    const length = direction.length();
+    const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+
+    const geometry = new THREE.CylinderGeometry(radius, radius, length, 8, 1, false);
+    const mesh = new THREE.Mesh(geometry, material);
+
+    const axis = new THREE.Vector3(0, 1, 0);
+    mesh.quaternion.setFromUnitVectors(axis, direction.normalize());
+    mesh.position.copy(midpoint);
+    mesh.castShadow = true;
+
+    return mesh;
+}
+
+function createJunctionSphere(position, radius, material) {
+    const geometry = new THREE.SphereGeometry(radius, 12, 12);
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.copy(position);
+    mesh.castShadow = true;
+    return mesh;
 }
 
 function createFrame() {
@@ -104,83 +181,104 @@ function createFrame() {
     });
 
     const tubeRadius = 0.015;
-    const segments = 8;
+    const junctionRadius = tubeRadius * 1.08;
 
-    const leftRail = new THREE.Mesh(
-        new THREE.CylinderGeometry(tubeRadius, tubeRadius, 1.2, segments),
-        frameMaterial
-    );
-    leftRail.rotation.z = Math.PI / 2;
-    leftRail.position.set(-0.275, 0.08, 0);
-    leftRail.castShadow = true;
-    frameGroup.add(leftRail);
+    const junctions = {
+        rearLeft: new THREE.Vector3(-0.3, 0.08, -0.52),
+        rearRight: new THREE.Vector3(0.3, 0.08, -0.52),
+        midRearLeft: new THREE.Vector3(-0.285, 0.08, -0.12),
+        midRearRight: new THREE.Vector3(0.285, 0.08, -0.12),
+        midLeft: new THREE.Vector3(-0.275, 0.08, 0.18),
+        midRight: new THREE.Vector3(0.275, 0.08, 0.18),
+        frontLeft: new THREE.Vector3(-0.275, 0.085, 0.48),
+        frontRight: new THREE.Vector3(0.275, 0.085, 0.48),
+        frontNoseLeft: new THREE.Vector3(-0.275, 0.075, 0.53),
+        frontNoseRight: new THREE.Vector3(0.275, 0.075, 0.53),
+        rollBarLeft: new THREE.Vector3(-0.15, 0.48, -0.15),
+        rollBarRight: new THREE.Vector3(0.15, 0.48, -0.15),
+        rollBarBottomLeft: new THREE.Vector3(-0.15, 0.08, -0.15),
+        rollBarBottomRight: new THREE.Vector3(0.15, 0.08, -0.15)
+    };
 
-    const rightRail = new THREE.Mesh(
-        new THREE.CylinderGeometry(tubeRadius, tubeRadius, 1.2, segments),
-        frameMaterial
-    );
-    rightRail.rotation.z = Math.PI / 2;
-    rightRail.position.set(0.275, 0.08, 0);
-    rightRail.castShadow = true;
-    frameGroup.add(rightRail);
+    const tubes = [
+        [junctions.rearLeft, junctions.midRearLeft],
+        [junctions.midRearLeft, junctions.midLeft],
+        [junctions.midLeft, junctions.frontLeft],
+        [junctions.frontLeft, junctions.frontNoseLeft],
+        [junctions.rearRight, junctions.midRearRight],
+        [junctions.midRearRight, junctions.midRight],
+        [junctions.midRight, junctions.frontRight],
+        [junctions.frontRight, junctions.frontNoseRight],
+        [junctions.rearLeft, junctions.rearRight],
+        [junctions.midRearLeft, junctions.midRearRight],
+        [junctions.midLeft, junctions.midRight],
+        [junctions.frontLeft, junctions.frontRight],
+        [junctions.frontNoseLeft, junctions.frontNoseRight],
+        [junctions.rollBarBottomLeft, junctions.rollBarLeft],
+        [junctions.rollBarBottomRight, junctions.rollBarRight],
+        [junctions.rollBarLeft, junctions.rollBarRight],
+        [junctions.midRearLeft, junctions.rollBarBottomLeft],
+        [junctions.midRearRight, junctions.rollBarBottomRight]
+    ];
 
-    const frontCross = new THREE.Mesh(
-        new THREE.CylinderGeometry(tubeRadius, tubeRadius, 0.55, segments),
-        frameMaterial
-    );
-    frontCross.rotation.z = Math.PI / 2;
-    frontCross.rotation.y = Math.PI / 2;
-    frontCross.position.set(0, 0.08, 0.5);
-    frontCross.castShadow = true;
-    frameGroup.add(frontCross);
+    tubes.forEach(([start, end]) => {
+        const tube = createStraightTube(start, end, tubeRadius, frameMaterial);
+        frameGroup.add(tube);
+    });
 
-    const rearCross = new THREE.Mesh(
-        new THREE.CylinderGeometry(tubeRadius * 1.2, tubeRadius * 1.2, 0.6, segments),
-        frameMaterial
-    );
-    rearCross.rotation.z = Math.PI / 2;
-    rearCross.rotation.y = Math.PI / 2;
-    rearCross.position.set(0, 0.08, -0.52);
-    rearCross.castShadow = true;
-    frameGroup.add(rearCross);
-
-    const midCross1 = new THREE.Mesh(
-        new THREE.CylinderGeometry(tubeRadius * 0.9, tubeRadius * 0.9, 0.5, segments),
-        frameMaterial
-    );
-    midCross1.rotation.z = Math.PI / 2;
-    midCross1.rotation.y = Math.PI / 2;
-    midCross1.position.set(0, 0.08, -0.1);
-    midCross1.castShadow = true;
-    frameGroup.add(midCross1);
-
-    const rollBarLeft = new THREE.Mesh(
-        new THREE.CylinderGeometry(tubeRadius * 1.1, tubeRadius * 1.1, 0.4, segments),
-        frameMaterial
-    );
-    rollBarLeft.position.set(-0.15, 0.28, -0.15);
-    rollBarLeft.castShadow = true;
-    frameGroup.add(rollBarLeft);
-
-    const rollBarRight = new THREE.Mesh(
-        new THREE.CylinderGeometry(tubeRadius * 1.1, tubeRadius * 1.1, 0.4, segments),
-        frameMaterial
-    );
-    rollBarRight.position.set(0.15, 0.28, -0.15);
-    rollBarRight.castShadow = true;
-    frameGroup.add(rollBarRight);
-
-    const rollBarTop = new THREE.Mesh(
-        new THREE.CylinderGeometry(tubeRadius * 1.1, tubeRadius * 1.1, 0.3, segments),
-        frameMaterial
-    );
-    rollBarTop.rotation.z = Math.PI / 2;
-    rollBarTop.rotation.y = Math.PI / 2;
-    rollBarTop.position.set(0, 0.48, -0.15);
-    rollBarTop.castShadow = true;
-    frameGroup.add(rollBarTop);
+    Object.values(junctions).forEach(pos => {
+        const sphere = createJunctionSphere(pos, junctionRadius, frameMaterial);
+        frameGroup.add(sphere);
+    });
 
     return frameGroup;
+}
+
+function createAxleAssembly() {
+    const assemblyGroup = new THREE.Group();
+
+    const axleMaterial = new THREE.MeshStandardMaterial({
+        color: 0x404040,
+        metalness: 0.9,
+        roughness: 0.2
+    });
+
+    const bearingMaterial = new THREE.MeshStandardMaterial({
+        color: 0x2a2a2a,
+        metalness: 0.6,
+        roughness: 0.4
+    });
+
+    const axleGeometry = new THREE.CylinderGeometry(0.025, 0.025, 1.25, 16);
+    const axle = new THREE.Mesh(axleGeometry, axleMaterial);
+    axle.rotation.z = Math.PI / 2;
+    axle.position.set(0, 0.135, -0.52);
+    axle.castShadow = true;
+    assemblyGroup.add(axle);
+
+    const bearingGeometry = new THREE.BoxGeometry(0.08, 0.06, 0.04);
+    const leftBearing = new THREE.Mesh(bearingGeometry, bearingMaterial);
+    leftBearing.position.set(-0.45, 0.135, -0.52);
+    leftBearing.castShadow = true;
+    assemblyGroup.add(leftBearing);
+
+    const rightBearing = new THREE.Mesh(bearingGeometry, bearingMaterial);
+    rightBearing.position.set(0.45, 0.135, -0.52);
+    rightBearing.castShadow = true;
+    assemblyGroup.add(rightBearing);
+
+    const supportGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.055, 8);
+    const leftSupport = new THREE.Mesh(supportGeometry, axleMaterial);
+    leftSupport.position.set(-0.45, 0.1075, -0.52);
+    leftSupport.castShadow = true;
+    assemblyGroup.add(leftSupport);
+
+    const rightSupport = new THREE.Mesh(supportGeometry, axleMaterial);
+    rightSupport.position.set(0.45, 0.1075, -0.52);
+    rightSupport.castShadow = true;
+    assemblyGroup.add(rightSupport);
+
+    return assemblyGroup;
 }
 
 function createSeat() {
@@ -192,36 +290,128 @@ function createSeat() {
         metalness: 0.0
     });
 
-    const baseGeometry = new THREE.BoxGeometry(0.35, 0.05, 0.40);
+    const createRoundedProfile = (width, height) => {
+        const shape = new THREE.Shape();
+        const w = width / 2;
+        const h = height / 2;
+        const r = Math.min(width, height) * 0.1;
+
+        shape.moveTo(-w + r, -h);
+        shape.lineTo(w - r, -h);
+        shape.quadraticCurveTo(w, -h, w, -h + r);
+        shape.lineTo(w, h - r);
+        shape.quadraticCurveTo(w, h, w - r, h);
+        shape.lineTo(-w + r, h);
+        shape.quadraticCurveTo(-w, h, -w, h - r);
+        shape.lineTo(-w, -h + r);
+        shape.quadraticCurveTo(-w, -h, -w + r, -h);
+
+        return shape;
+    };
+
+    const baseShape = createRoundedProfile(0.35, 0.05);
+    const baseGeometry = new THREE.ExtrudeGeometry(baseShape, {
+        depth: 0.40,
+        bevelEnabled: true,
+        bevelThickness: 0.008,
+        bevelSize: 0.008,
+        bevelSegments: 4,
+        curveSegments: 16
+    });
     const baseMesh = new THREE.Mesh(baseGeometry, seatMaterial);
-    baseMesh.position.set(0, 0, 0);
+    baseMesh.rotation.x = Math.PI / 2;
+    baseMesh.position.set(-0.175, 0, -0.2);
     baseMesh.castShadow = true;
+    baseMesh.geometry.computeVertexNormals();
     seatGroup.add(baseMesh);
 
-    const backGeometry = new THREE.BoxGeometry(0.35, 0.4, 0.05);
+    const backShape = createRoundedProfile(0.35, 0.4);
+    const backGeometry = new THREE.ExtrudeGeometry(backShape, {
+        depth: 0.05,
+        bevelEnabled: true,
+        bevelThickness: 0.008,
+        bevelSize: 0.008,
+        bevelSegments: 4,
+        curveSegments: 16
+    });
     const backMesh = new THREE.Mesh(backGeometry, seatMaterial);
-    backMesh.position.set(0, 0.15, -0.175);
-    backMesh.rotation.x = -0.26;
+    backMesh.rotation.x = Math.PI / 2;
+    backMesh.rotation.y = -0.26;
+    backMesh.position.set(-0.175, 0.175, -0.175);
     backMesh.castShadow = true;
+    backMesh.geometry.computeVertexNormals();
     seatGroup.add(backMesh);
 
-    const bolsterGeometry = new THREE.BoxGeometry(0.05, 0.25, 0.30);
+    const bolsterGeometry = new THREE.CylinderGeometry(0.025, 0.035, 0.30, 24, 8, false);
 
     const leftBolster = new THREE.Mesh(bolsterGeometry, seatMaterial);
     leftBolster.position.set(-0.18, 0.08, -0.05);
     leftBolster.rotation.x = -0.175;
     leftBolster.castShadow = true;
+    leftBolster.geometry.computeVertexNormals();
     seatGroup.add(leftBolster);
 
     const rightBolster = new THREE.Mesh(bolsterGeometry, seatMaterial);
     rightBolster.position.set(0.18, 0.08, -0.05);
     rightBolster.rotation.x = -0.175;
     rightBolster.castShadow = true;
+    rightBolster.geometry.computeVertexNormals();
     seatGroup.add(rightBolster);
 
-    seatGroup.position.set(0, 0.15, -0.1);
+    seatGroup.position.set(0, 0.10, -0.1);
 
     return seatGroup;
+}
+
+function createSeatMounting() {
+    const mountGroup = new THREE.Group();
+
+    const frameMaterial = new THREE.MeshStandardMaterial({
+        color: 0xc41e3a,
+        roughness: 0.3,
+        metalness: 0.7
+    });
+
+    const bracketPositions = [
+        new THREE.Vector3(-0.175, 0.08, 0.0),
+        new THREE.Vector3(0.175, 0.08, 0.0),
+        new THREE.Vector3(-0.175, 0.08, -0.25),
+        new THREE.Vector3(0.175, 0.08, -0.25)
+    ];
+
+    bracketPositions.forEach(pos => {
+        const vertTube = createStraightTube(
+            pos,
+            new THREE.Vector3(pos.x, 0.10, pos.z),
+            0.008,
+            frameMaterial
+        );
+        mountGroup.add(vertTube);
+    });
+
+    const strutMaterial = new THREE.MeshStandardMaterial({
+        color: 0xa0a0a0,
+        roughness: 0.3,
+        metalness: 0.8
+    });
+
+    const leftStrut = createStraightTube(
+        new THREE.Vector3(-0.15, 0.45, -0.3),
+        new THREE.Vector3(-0.288, 0.15, -0.52),
+        0.01,
+        strutMaterial
+    );
+    mountGroup.add(leftStrut);
+
+    const rightStrut = createStraightTube(
+        new THREE.Vector3(0.15, 0.45, -0.3),
+        new THREE.Vector3(0.288, 0.15, -0.52),
+        0.01,
+        strutMaterial
+    );
+    mountGroup.add(rightStrut);
+
+    return mountGroup;
 }
 
 function createSteeringWheel() {
@@ -348,24 +538,30 @@ function createKart() {
     const frame = createFrame();
     kartGroup.add(frame);
 
-    const frontLeftWheel = createWheel();
+    const axleAssembly = createAxleAssembly();
+    kartGroup.add(axleAssembly);
+
+    const frontLeftWheel = createWheel(true);
     frontLeftWheel.position.set(-0.275, 0.125, 0.52);
     kartGroup.add(frontLeftWheel);
 
-    const frontRightWheel = createWheel();
+    const frontRightWheel = createWheel(true);
     frontRightWheel.position.set(0.275, 0.125, 0.52);
     kartGroup.add(frontRightWheel);
 
-    const rearLeftWheel = createWheel();
-    rearLeftWheel.position.set(-0.288, 0.125, -0.52);
+    const rearLeftWheel = createWheel(false);
+    rearLeftWheel.position.set(-0.575, 0.135, -0.52);
     kartGroup.add(rearLeftWheel);
 
-    const rearRightWheel = createWheel();
-    rearRightWheel.position.set(0.288, 0.125, -0.52);
+    const rearRightWheel = createWheel(false);
+    rearRightWheel.position.set(0.575, 0.135, -0.52);
     kartGroup.add(rearRightWheel);
 
     const seat = createSeat();
     kartGroup.add(seat);
+
+    const seatMounting = createSeatMounting();
+    kartGroup.add(seatMounting);
 
     const steeringWheel = createSteeringWheel();
     kartGroup.add(steeringWheel);
@@ -388,7 +584,7 @@ function init() {
         1000
     );
     camera.position.set(3, 2, 4);
-    camera.lookAt(0, 0.5, 0);
+    camera.lookAt(0, 0.3, 0);
 
     renderer = new THREE.WebGLRenderer({
         canvas: canvas,
@@ -446,9 +642,12 @@ function init() {
     const kart = createKart();
     scene.add(kart);
 
-    console.log('3D Kart Racing Game Initialized');
-    console.log('Ground: 10km x 10km plane');
-    console.log('Kart components: Frame, Wheels (torus-based), Seat, Steering, Pedals');
+    console.log('3D Kart Racing Game - Properly Designed');
+    console.log('Front wheels: 10x4.5-5 (smaller, narrow)');
+    console.log('Rear wheels: 11x7.1-5 (larger, wide)');
+    console.log('Concave hubs with LatheGeometry');
+    console.log('Tubular frame with proper connections');
+    console.log('Smooth curved seat with rounded edges');
     console.log('Controls: Drag to rotate, Scroll to zoom');
 
     animate();
