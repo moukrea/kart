@@ -261,7 +261,7 @@ If /model command not suitable:
 
 New team members run:
 ```bash
-bash .claude/install.sh
+bash install-autonomous-modeler.sh
 ```
 
 Checks prerequisites, sets up .gitignore, tests image processing.

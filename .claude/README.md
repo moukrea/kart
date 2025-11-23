@@ -13,7 +13,7 @@ The autonomous agent uses the primitive-modeler methodology to build accurate mo
 Run the installation script:
 
 ```bash
-bash .claude/install.sh
+bash install-autonomous-modeler.sh
 ```
 
 This will:
@@ -827,7 +827,7 @@ cd kart
 
 **Step 2: Run installation**
 ```bash
-bash .claude/install.sh
+bash install-autonomous-modeler.sh
 ```
 
 **Step 3: Test with simple object**
@@ -1183,7 +1183,7 @@ The resulting models are code-based, version-controllable, and fully editable, m
 
 **Get started:**
 ```bash
-bash .claude/install.sh
+bash install-autonomous-modeler.sh
 /model <your-object> <your-reference-image>
 ```
 

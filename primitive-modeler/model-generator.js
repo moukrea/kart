@@ -266,6 +266,103 @@ export function createExampleTable() {
 }
 
 /**
+ * Auto-scales model to match reference measurements
+ * @param {THREE.Group} model - Model to scale
+ * @param {Object} measurements - Target measurements
+ * @param {number} baseSize - Base unit size
+ */
+export function autoScaleToReference(model, measurements, baseSize = 10) {
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+
+    const targetWidth = measurements.overall?.width || 1.0;
+    const scale = (baseSize * targetWidth) / size.x;
+
+    model.scale.multiplyScalar(scale);
+}
+
+/**
+ * Converts ratio measurement to units
+ * @param {number} ratio - Ratio value (0.0 to 1.0)
+ * @param {number} baseSize - Base dimension in units
+ * @returns {number} Calculated size in units
+ */
+export function measurementToUnits(ratio, baseSize) {
+    return ratio * baseSize;
+}
+
+/**
+ * Creates a mirrored clone of a mesh
+ * @param {THREE.Mesh} mesh - Mesh to clone
+ * @param {string} axis - Axis to mirror across ('x', 'y', 'z')
+ * @returns {THREE.Mesh} Mirrored clone
+ */
+export function symmetryClone(mesh, axis = 'x') {
+    const clone = mesh.clone();
+    const multiplier = axis === 'x' ? -1 : 1;
+
+    if (axis === 'x') {
+        clone.position.x *= -1;
+        clone.scale.x *= -1;
+    } else if (axis === 'y') {
+        clone.position.y *= -1;
+        clone.scale.y *= -1;
+    } else if (axis === 'z') {
+        clone.position.z *= -1;
+        clone.scale.z *= -1;
+    }
+
+    return clone;
+}
+
+/**
+ * Snaps object position to grid
+ * @param {THREE.Object3D} object - Object to align
+ * @param {number} gridSize - Grid unit size
+ */
+export function alignToGrid(object, gridSize = 0.5) {
+    object.position.x = Math.round(object.position.x / gridSize) * gridSize;
+    object.position.y = Math.round(object.position.y / gridSize) * gridSize;
+    object.position.z = Math.round(object.position.z / gridSize) * gridSize;
+}
+
+/**
+ * Creates an array of evenly spaced positions
+ * @param {Array<number>} start - Start position [x, y, z]
+ * @param {Array<number>} end - End position [x, y, z]
+ * @param {number} count - Number of positions
+ * @returns {Array<Array<number>>} Array of positions
+ */
+export function createPositionArray(start, end, count) {
+    const positions = [];
+    for (let i = 0; i < count; i++) {
+        const t = i / (count - 1);
+        positions.push([
+            start[0] + (end[0] - start[0]) * t,
+            start[1] + (end[1] - start[1]) * t,
+            start[2] + (end[2] - start[2]) * t
+        ]);
+    }
+    return positions;
+}
+
+/**
+ * Creates measurement helpers for reference
+ * @param {Object} measurements - Measurement object
+ * @returns {Object} Helper dimensions
+ */
+export function createMeasurementHelpers(measurements) {
+    const base = measurements.overall?.width || 1.0;
+
+    return {
+        width: base,
+        height: measurements.overall?.height || base * 0.4,
+        depth: measurements.overall?.depth || base * 0.8,
+        scale: (ratio) => ratio * base
+    };
+}
+
+/**
  * Main model creation function
  * Replace this example with your actual model
  * @returns {THREE.Group}
