@@ -6,3 +6,6 @@ dist
 .vscode
 .idea
 .temp/
+
+# Claude Code settings (local only, not shared)
+.claude/settings*.json

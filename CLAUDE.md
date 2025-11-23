@@ -182,3 +182,86 @@ IF workflows non-standard → capture here
 ---
 
 **APPEND PROJECT-SPECIFIC CONTENT BELOW THIS LINE:**
+
+## Primitive 3D Modeling System
+
+Located in `primitive-modeler/`. Complete autonomous 3D model generation from reference images.
+
+**Autonomous Agent:** `.claude/commands/model.md`
+
+### When to Use
+
+User requests ANY of these → automatically invoke `/model` command:
+- "make/build/create a 3D model"
+- "generate a 3D [object]"
+- Provides reference image for 3D modeling
+- Mentions primitive-modeler or THREE.js primitives
+
+### Auto-Detection Examples
+
+```
+User: "Make a 3D kart model using this reference: https://..."
+→ Invoke: /model kart https://...
+
+User: "I need a 3D chair for my scene"
+→ Ask for reference, then: /model chair [reference]
+
+User: "Build me a sports car in THREE.js primitives"
+→ Invoke: /model "sports car"
+```
+
+### Workflow Overview
+
+1. `/model <object> <image-url-or-path>`
+2. System autonomously:
+   - Downloads and analyzes reference images
+   - Detects/splits model sheets into views
+   - Extracts measurements via edge detection
+   - Builds model in `primitive-modeler/model-generator.js`
+   - Iterates through 4 phases (silhouette → features → details → alignment)
+   - Validates with metrics.js (IoU > 0.85 target)
+   - Refines until convergence (typically 8-12 iterations)
+   - Cleans up .temp/ artifacts
+   - Reports completion with metrics
+
+### Agent Orchestration
+
+- Spawns 12+ specialized agents in parallel
+- Image downloaders, analyzers, splitters
+- Measurement extractors (per view)
+- Model builders (iterative)
+- Validators and refinement planners
+
+### Manual Workflow Alternative
+
+If /model command not suitable:
+1. Edit `primitive-modeler/model-generator.js` manually
+2. Open `primitive-modeler/index.html` (7-camera multi-view renderer)
+3. Compare views in `primitive-modeler/reference-overlay.html`
+4. Iterate based on IoU metrics from `primitive-modeler/metrics.js`
+
+### Key Files
+
+- `.claude/commands/model.md` - Autonomous agent command
+- `primitive-modeler/METHODOLOGY.md` - 4-phase hierarchical decomposition approach
+- `primitive-modeler/model-generator.js` - Model definition (edited by agent or manually)
+- `primitive-modeler/index.html` - 7-view renderer (6 ortho + 1 perspective)
+- `primitive-modeler/metrics.js` - IoU calculation, edge detection, convergence
+- `primitive-modeler/image-utils.js` - Image download, analysis, splitting
+- `primitive-modeler/reference-overlay.html` - Manual comparison tool
+
+### Dependencies
+
+- curl (image download)
+- ImageMagick (image processing, model sheet splitting)
+- Node.js (optional, for automated rendering)
+- THREE.js r181+ (loaded via CDN in index.html)
+
+### Installation
+
+New team members run:
+```bash
+bash .claude/install.sh
+```
+
+Checks prerequisites, sets up .gitignore, tests image processing.
