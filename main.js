@@ -5,9 +5,10 @@ import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 const canvas = document.getElementById('game-canvas');
 let scene, camera, renderer, controls;
 let engineMesh = null;
-let exhaustMeshes = [];
+let exhaust1 = null;
+let exhaust2 = null;
 let wheelMeshes = [];
-let kartSpeed = 0; // Speed in units/second (positive = forward, negative = backward)
+let kartSpeed = 0;
 
 window.scene = null;
 window.camera = null;
@@ -709,15 +710,66 @@ function init() {
 
             kart.position.y = 0;
 
+            let exhaustCount = 0;
             kart.traverse(function (child) {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
 
                     const name = child.name.toLowerCase();
+
                     if (name.includes('engine')) {
                         engineMesh = child;
-                        exhaustMeshes.push(child);
+
+                        child.traverse(function (subChild) {
+                            if (subChild.isMesh && subChild.geometry && subChild.geometry.type === 'CylinderGeometry') {
+                                if (exhaustCount === 0) {
+                                    exhaust1 = subChild;
+                                    exhaustCount++;
+                                } else if (exhaustCount === 1) {
+                                    exhaust2 = subChild;
+                                    exhaustCount++;
+                                }
+                            }
+                        });
+
+                        if (child.material) {
+                            child.material = new THREE.MeshStandardMaterial({
+                                color: 0x555555,
+                                metalness: 0.8,
+                                roughness: 0.3
+                            });
+                        }
+                    }
+
+                    if (name.includes('axel') || name.includes('axle')) {
+                        if (child.material) {
+                            child.material = new THREE.MeshStandardMaterial({
+                                color: 0x888888,
+                                metalness: 0.9,
+                                roughness: 0.2
+                            });
+                        }
+                    }
+
+                    if (name.includes('seat')) {
+                        if (child.material) {
+                            child.material = new THREE.MeshStandardMaterial({
+                                color: 0x1a1a1a,
+                                metalness: 0,
+                                roughness: 0.85
+                            });
+                        }
+                    }
+
+                    if (name.includes('mainbody')) {
+                        if (child.material) {
+                            child.material = new THREE.MeshStandardMaterial({
+                                color: 0xcc3333,
+                                metalness: 0.2,
+                                roughness: 0.6
+                            });
+                        }
                     }
 
                     if (name.includes('wheel') || name.includes('tire')) {
@@ -725,11 +777,19 @@ function init() {
 
                         if (Array.isArray(child.material)) {
                             child.material = child.material.map(mat => {
-                                if (mat.name && mat.name.toLowerCase().includes('rim')) {
+                                const matName = mat.name ? mat.name.toLowerCase() : '';
+
+                                if (matName.includes('rim')) {
                                     return new THREE.MeshStandardMaterial({
                                         color: 0xcccccc,
                                         metalness: 0.9,
                                         roughness: 0.2
+                                    });
+                                } else if (matName.includes('tyre') || matName.includes('tire')) {
+                                    return new THREE.MeshStandardMaterial({
+                                        color: 0x0a0a0a,
+                                        metalness: 0,
+                                        roughness: 0.95
                                     });
                                 }
                                 return mat;
@@ -742,7 +802,8 @@ function init() {
             scene.add(kart);
             console.log('Downloaded kart model loaded successfully');
             console.log('Engine mesh found:', engineMesh ? 'Yes' : 'No');
-            console.log('Exhaust meshes found:', exhaustMeshes.length);
+            console.log('Exhaust 1 found:', exhaust1 ? 'Yes' : 'No');
+            console.log('Exhaust 2 found:', exhaust2 ? 'Yes' : 'No');
             console.log('Wheel meshes found:', wheelMeshes.length);
             console.log('To test wheel rotation: window.kartSpeed = 5 (forward) or -5 (backward)');
         },
@@ -778,11 +839,14 @@ function animate() {
         engineMesh.scale.set(engineScale, engineScale, engineScale);
     }
 
-    if (exhaustMeshes.length > 0) {
-        const exhaustScale = 1.0 + Math.sin(time * 32 + Math.PI) * 0.05;
-        exhaustMeshes.forEach(exhaust => {
-            exhaust.scale.set(exhaustScale, exhaustScale, exhaustScale);
-        });
+    if (exhaust1) {
+        const exhaust1Scale = 1.0 + Math.sin(time * 32 + Math.PI * 0.7) * 0.05;
+        exhaust1.scale.set(exhaust1Scale, exhaust1Scale, exhaust1Scale);
+    }
+
+    if (exhaust2) {
+        const exhaust2Scale = 1.0 + Math.sin(time * 32 + Math.PI * 0.85) * 0.05;
+        exhaust2.scale.set(exhaust2Scale, exhaust2Scale, exhaust2Scale);
     }
 
     // Wheel rotation based on speed
