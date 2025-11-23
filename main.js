@@ -5,6 +5,8 @@ import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 const canvas = document.getElementById('game-canvas');
 let scene, camera, renderer, controls;
 let engineMesh = null;
+let exhaustProxy1 = null;
+let exhaustProxy2 = null;
 let wheelMeshes = [];
 let kartSpeed = 0;
 
@@ -714,61 +716,139 @@ function init() {
                     child.receiveShadow = true;
 
                     const name = child.name.toLowerCase();
-
                     if (name.includes('engine')) {
                         engineMesh = child;
                     }
 
                     if (name.includes('wheel') || name.includes('tire')) {
                         wheelMeshes.push(child);
-
-                        if (Array.isArray(child.material)) {
-                            child.material = child.material.map(mat => {
-                                const matName = mat.name ? mat.name.toLowerCase() : '';
-
-                                if (matName.includes('rim')) {
-                                    const newMat = mat.clone();
-                                    newMat.metalness = 0.9;
-                                    newMat.roughness = 0.2;
-                                    return newMat;
-                                } else if (matName.includes('tyre') || matName.includes('tire')) {
-                                    const newMat = mat.clone();
-                                    newMat.metalness = 0;
-                                    newMat.roughness = 0.95;
-                                    return newMat;
-                                }
-                                return mat;
-                            });
-                        }
                     }
 
+                    // Comprehensive material conversion: MeshLambertMaterial -> MeshStandardMaterial
                     if (child.material) {
-                        if (Array.isArray(child.material)) {
-                            child.material.forEach(mat => {
-                                if (mat.map) {
-                                    const matName = mat.name ? mat.name.toLowerCase() : '';
-                                    if (matName.includes('metal') || name.includes('axel') || name.includes('axle')) {
-                                        mat.metalness = 0.8;
-                                        mat.roughness = 0.3;
-                                    } else if (matName.includes('fabric') || name.includes('seat')) {
-                                        mat.metalness = 0;
-                                        mat.roughness = 0.9;
-                                    }
-                                }
+                        const materials = Array.isArray(child.material) ? child.material : [child.material];
+                        const isEngine = name.includes('engine');
+
+                        const processedMaterials = materials.map(mat => {
+                            const matName = mat.name ? mat.name.toLowerCase() : '';
+
+                            // Convert to MeshStandardMaterial for PBR support
+                            const newMat = new THREE.MeshStandardMaterial({
+                                color: mat.color ? mat.color.getHex() : 0x808080,
+                                map: mat.map || null,
+                                name: mat.name
                             });
-                        } else if (child.material.map) {
-                            const matName = child.material.name ? child.material.name.toLowerCase() : '';
-                            if (matName.includes('metal') || name.includes('axel') || name.includes('axle')) {
-                                child.material.metalness = 0.8;
-                                child.material.roughness = 0.3;
-                            } else if (matName.includes('fabric') || name.includes('seat')) {
-                                child.material.metalness = 0;
-                                child.material.roughness = 0.9;
+
+                            // WHEEL HUBS: rim_* materials override to metallic silver
+                            if (matName.includes('rim')) {
+                                newMat.color.setHex(0xc0c0c0);
+                                newMat.metalness = 0.9;
+                                newMat.roughness = 0.2;
+                                newMat.map = null; // Remove texture
+                                return newMat;
                             }
-                        }
+
+                            // TIRES: tyre/tire materials
+                            if (matName.includes('tyre') || matName.includes('tire')) {
+                                newMat.metalness = 0;
+                                newMat.roughness = 0.95;
+                                return newMat;
+                            }
+
+                            // ENGINE: all engine materials become metallic, preserve colors
+                            if (isEngine) {
+                                const colorVariance = Math.random() * 0.2;
+                                newMat.metalness = 0.7 + colorVariance;
+                                newMat.roughness = 0.2 + colorVariance;
+                                return newMat;
+                            }
+
+                            // FRAME/MAINBODY/AXEL: metallic, preserve color
+                            if (name.includes('mainbody') || name.includes('axel') || name.includes('axle')) {
+                                newMat.metalness = 0.8;
+                                newMat.roughness = 0.3;
+                                return newMat;
+                            }
+
+                            // PEDALS: metallic, preserve color
+                            if (name.includes('pedal')) {
+                                newMat.metalness = 0.8;
+                                newMat.roughness = 0.3;
+                                return newMat;
+                            }
+
+                            // STEERING WHEEL: rubbery for wheel part, metallic for column
+                            if (name.includes('steeringwheel') || name.includes('steering_wheel')) {
+                                if (matName.includes('grey_dark')) {
+                                    // Steering wheel grip - rubbery
+                                    newMat.metalness = 0;
+                                    newMat.roughness = 0.85;
+                                } else {
+                                    // Steering column parts - metallic
+                                    newMat.metalness = 0.8;
+                                    newMat.roughness = 0.3;
+                                }
+                                return newMat;
+                            }
+
+                            // SEAT: fabric-like, preserve color
+                            if (name.includes('seat') || matName.includes('seat')) {
+                                newMat.metalness = 0;
+                                newMat.roughness = 0.9;
+                                return newMat;
+                            }
+
+                            // Default: return with basic PBR properties
+                            newMat.metalness = 0.2;
+                            newMat.roughness = 0.7;
+                            return newMat;
+                        });
+
+                        // Apply processed materials back to the mesh
+                        child.material = Array.isArray(child.material) ? processedMaterials : processedMaterials[0];
                     }
                 }
             });
+
+            // Create exhaust proxy geometries if engine was found
+            if (engineMesh) {
+                const engineBBox = new THREE.Box3().setFromObject(engineMesh);
+                const engineMax = engineBBox.max;
+                const engineMin = engineBBox.min;
+
+                // Small cone geometries to represent exhaust puffs
+                const exhaustGeometry = new THREE.ConeGeometry(0.03, 0.08, 8);
+                const exhaustMaterial1 = new THREE.MeshStandardMaterial({
+                    color: 0x808080,
+                    metalness: 0.9,
+                    roughness: 0.2,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const exhaustMaterial2 = exhaustMaterial1.clone();
+
+                // Position exhaust proxy 1 at right rear of engine
+                exhaustProxy1 = new THREE.Mesh(exhaustGeometry, exhaustMaterial1);
+                exhaustProxy1.position.copy(engineMesh.position);
+                exhaustProxy1.position.x += engineMax.x + 0.08;
+                exhaustProxy1.position.y += engineMax.y + 0.05;
+                exhaustProxy1.position.z += engineMin.z - 0.05;
+                exhaustProxy1.rotation.x = Math.PI / 2; // Point backward
+                exhaustProxy1.castShadow = true;
+                kart.add(exhaustProxy1);
+
+                // Position exhaust proxy 2 at slightly different position
+                exhaustProxy2 = new THREE.Mesh(exhaustGeometry, exhaustMaterial2);
+                exhaustProxy2.position.copy(engineMesh.position);
+                exhaustProxy2.position.x += engineMax.x + 0.04;
+                exhaustProxy2.position.y += engineMax.y + 0.08;
+                exhaustProxy2.position.z += engineMin.z - 0.08;
+                exhaustProxy2.rotation.x = Math.PI / 2; // Point backward
+                exhaustProxy2.castShadow = true;
+                kart.add(exhaustProxy2);
+
+                console.log('Exhaust proxies created at:', exhaustProxy1.position, exhaustProxy2.position);
+            }
 
             scene.add(kart);
             console.log('Downloaded kart model loaded successfully');
@@ -803,11 +883,32 @@ function animate() {
 
     const time = currentTime * 0.001;
 
+    // Engine vibration: sin(time * 32) * 0.05
     if (engineMesh) {
-        const exhaust1 = Math.sin(time * 32) * 0.05;
-        const exhaust2 = Math.sin(time * 32 + Math.PI * 0.3) * 0.05;
-        const engineScale = 1.0 + (exhaust1 + exhaust2) / 2;
+        const engineVibration = Math.sin(time * 32) * 0.05;
+        const engineScale = 1.0 + engineVibration;
         engineMesh.scale.set(engineScale, engineScale, engineScale);
+    }
+
+    // Animate exhaust proxies with staggered timing (cartoony effect)
+    if (exhaustProxy1) {
+        // Exhaust 1: sin(time * 32 - 0.4) * 0.06
+        const exhaust1Value = Math.sin(time * 32 - 0.4) * 0.06;
+        const exhaust1Scale = 1.0 + exhaust1Value;
+        exhaustProxy1.scale.set(exhaust1Scale, exhaust1Scale, exhaust1Scale * 1.5); // Elongate in Z for puff effect
+
+        // Pulse opacity for cartoony effect
+        exhaustProxy1.material.opacity = 0.4 + Math.max(0, exhaust1Value) * 5;
+    }
+
+    if (exhaustProxy2) {
+        // Exhaust 2: sin(time * 32 - 0.8) * 0.07
+        const exhaust2Value = Math.sin(time * 32 - 0.8) * 0.07;
+        const exhaust2Scale = 1.0 + exhaust2Value;
+        exhaustProxy2.scale.set(exhaust2Scale, exhaust2Scale, exhaust2Scale * 1.5); // Elongate in Z for puff effect
+
+        // Pulse opacity for cartoony effect
+        exhaustProxy2.material.opacity = 0.4 + Math.max(0, exhaust2Value) * 6;
     }
 
     // Wheel rotation based on speed
