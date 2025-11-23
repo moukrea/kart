@@ -4,6 +4,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 const canvas = document.getElementById('game-canvas');
 let scene, camera, renderer, controls;
 
+window.scene = null;
+window.camera = null;
+window.renderer = null;
+window.controls = null;
+
 function createGroundPlane() {
     const geometry = new THREE.PlaneGeometry(10000, 10000, 200, 200);
     geometry.rotateX(-Math.PI / 2);
@@ -118,6 +123,14 @@ function createKart() {
     nose.castShadow = true;
     kart.add(nose);
 
+    const frontBumper = new THREE.Mesh(
+        new THREE.BoxGeometry(0.85, 0.04, 0.05),
+        new THREE.MeshStandardMaterial({ color: red, metalness: 0.6, roughness: 0.4 })
+    );
+    frontBumper.position.set(0, 0.06, 0.72);
+    frontBumper.castShadow = true;
+    kart.add(frontBumper);
+
     const sidePodLeft = new THREE.Mesh(
         new THREE.BoxGeometry(0.12, 0.15, 0.60),
         new THREE.MeshStandardMaterial({ color: red, metalness: 0.6, roughness: 0.4 })
@@ -135,37 +148,46 @@ function createKart() {
     kart.add(sidePodRight);
 
     const rearWing = new THREE.Mesh(
-        new THREE.BoxGeometry(0.85, 0.04, 0.15),
+        new THREE.BoxGeometry(0.90, 0.03, 0.18),
         new THREE.MeshStandardMaterial({ color: red, metalness: 0.6, roughness: 0.4 })
     );
-    rearWing.position.set(0, 0.48, -0.55);
+    rearWing.position.set(0, 0.38, -0.58);
     rearWing.castShadow = true;
     kart.add(rearWing);
 
     const wingStrutLeft = new THREE.Mesh(
-        new THREE.BoxGeometry(0.04, 0.32, 0.04),
+        new THREE.BoxGeometry(0.03, 0.20, 0.03),
         new THREE.MeshStandardMaterial({ color: gray, metalness: 0.7, roughness: 0.3 })
     );
-    wingStrutLeft.position.set(-0.35, 0.32, -0.55);
+    wingStrutLeft.position.set(-0.38, 0.28, -0.58);
     wingStrutLeft.castShadow = true;
     kart.add(wingStrutLeft);
 
     const wingStrutRight = new THREE.Mesh(
-        new THREE.BoxGeometry(0.04, 0.32, 0.04),
+        new THREE.BoxGeometry(0.03, 0.20, 0.03),
         new THREE.MeshStandardMaterial({ color: gray, metalness: 0.7, roughness: 0.3 })
     );
-    wingStrutRight.position.set(0.35, 0.32, -0.55);
+    wingStrutRight.position.set(0.38, 0.28, -0.58);
     wingStrutRight.castShadow = true;
     kart.add(wingStrutRight);
 
     const steeringWheel = new THREE.Mesh(
-        new THREE.TorusGeometry(0.15, 0.02, 12, 32),
+        new THREE.TorusGeometry(0.12, 0.015, 12, 32),
         new THREE.MeshStandardMaterial({ color: black, roughness: 0.7 })
     );
-    steeringWheel.position.set(0, 0.38, 0.35);
-    steeringWheel.rotation.x = -0.4;
+    steeringWheel.position.set(0, 0.32, 0.05);
+    steeringWheel.rotation.x = -0.5;
     steeringWheel.castShadow = true;
     kart.add(steeringWheel);
+
+    const steeringColumn = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.012, 0.20, 8),
+        new THREE.MeshStandardMaterial({ color: gray, metalness: 0.7, roughness: 0.3 })
+    );
+    steeringColumn.position.set(0, 0.22, 0.10);
+    steeringColumn.rotation.x = 0.5;
+    steeringColumn.castShadow = true;
+    kart.add(steeringColumn);
 
     const engineBlock = new THREE.Mesh(
         new THREE.BoxGeometry(0.28, 0.35, 0.30),
@@ -211,6 +233,11 @@ function init() {
     controls.target.set(0, 0.2, 0);
     controls.minDistance = 1.5;
     controls.maxDistance = 15;
+
+    window.scene = scene;
+    window.camera = camera;
+    window.renderer = renderer;
+    window.controls = controls;
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
