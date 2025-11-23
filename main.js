@@ -769,7 +769,7 @@ function animate() {
     }
 
     if (exhaustMeshes.length > 0) {
-        const exhaustScale = 1.0 + Math.sin(time * 38 + Math.PI * 0.5) * 0.05;
+        const exhaustScale = 1.0 + Math.sin(time * 32 + Math.PI) * 0.05;
         exhaustMeshes.forEach(exhaust => {
             exhaust.scale.set(exhaustScale, exhaustScale, exhaustScale);
         });
