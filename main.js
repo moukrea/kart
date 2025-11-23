@@ -840,13 +840,15 @@ function init() {
             if (engineMesh) {
                 const materials = Array.isArray(engineMesh.material) ? engineMesh.material : [engineMesh.material];
 
-                // Original mesh: show only Engine Block (grey_lght), hide others
+                // Original mesh: show only Engine Block (grey_lght), hide others via opacity
                 materials.forEach(mat => {
                     const matName = mat.name ? mat.name.toLowerCase() : '';
                     if (matName === 'grey_lght') {
-                        mat.visible = true;  // Engine Block stays visible
+                        mat.opacity = 1.0;
+                        mat.transparent = false;
                     } else {
-                        mat.visible = false; // Hide other groups on original mesh
+                        mat.opacity = 0.0;
+                        mat.transparent = true;
                     }
                 });
 
@@ -858,9 +860,11 @@ function init() {
                 exhaustLeftMesh.material.forEach(mat => {
                     const matName = mat.name ? mat.name.toLowerCase() : '';
                     if (matName === 'grey_lght') {
-                        mat.visible = false; // Hide Engine Block on left mesh
+                        mat.opacity = 0.0;
+                        mat.transparent = true;
                     } else {
-                        mat.visible = true;  // Show the 3 splittable groups
+                        mat.opacity = 1.0;
+                        mat.transparent = false;
                         mat.clippingPlanes = [leftClipPlane];
                         mat.clipShadows = true;
                     }
@@ -875,9 +879,11 @@ function init() {
                 exhaustRightMesh.material.forEach(mat => {
                     const matName = mat.name ? mat.name.toLowerCase() : '';
                     if (matName === 'grey_lght') {
-                        mat.visible = false; // Hide Engine Block on right mesh
+                        mat.opacity = 0.0;
+                        mat.transparent = true;
                     } else {
-                        mat.visible = true;  // Show the 3 splittable groups
+                        mat.opacity = 1.0;
+                        mat.transparent = false;
                         mat.clippingPlanes = [rightClipPlane];
                         mat.clipShadows = true;
                     }
