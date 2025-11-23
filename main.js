@@ -5,8 +5,6 @@ import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 const canvas = document.getElementById('game-canvas');
 let scene, camera, renderer, controls;
 let engineMesh = null;
-let exhaustLeftMesh = null;
-let exhaustRightMesh = null;
 let wheelMeshes = [];
 let kartSpeed = 0;
 
@@ -639,32 +637,53 @@ function createKart() {
 }
 
 function setupEngineVisibilityControls() {
-    const toggleEngine = document.getElementById('toggle-engine');
+    if (!engineMesh || !engineMesh.material) return;
+
+    const materials = Array.isArray(engineMesh.material) ? engineMesh.material : [engineMesh.material];
+
+    // Group materials by type
+    const engineBlockMats = materials.filter(m => m.name && m.name.toLowerCase().includes('grey_lght'));
+    const leftMats = materials.filter(m => m.name && m.name.toLowerCase().includes('_left'));
+    const rightMats = materials.filter(m => m.name && m.name.toLowerCase().includes('_right'));
+
+    const toggleEngineBlock = document.getElementById('toggle-engine');
     const toggleExhaustLeft = document.getElementById('toggle-exhaust-left');
     const toggleExhaustRight = document.getElementById('toggle-exhaust-right');
 
-    if (toggleEngine && engineMesh) {
-        toggleEngine.addEventListener('change', (e) => {
-            engineMesh.visible = e.target.checked;
-            console.log('Engine visibility:', e.target.checked);
+    if (toggleEngineBlock) {
+        toggleEngineBlock.addEventListener('change', (e) => {
+            engineBlockMats.forEach(mat => {
+                mat.opacity = e.target.checked ? 1.0 : 0.0;
+                mat.transparent = !e.target.checked;
+            });
+            console.log('Engine Block visibility:', e.target.checked);
         });
     }
 
-    if (toggleExhaustLeft && exhaustLeftMesh) {
+    if (toggleExhaustLeft) {
         toggleExhaustLeft.addEventListener('change', (e) => {
-            exhaustLeftMesh.visible = e.target.checked;
-            console.log('Exhaust Left visibility:', e.target.checked);
+            leftMats.forEach(mat => {
+                mat.opacity = e.target.checked ? 1.0 : 0.0;
+                mat.transparent = !e.target.checked;
+            });
+            console.log('Left groups visibility:', e.target.checked);
         });
     }
 
-    if (toggleExhaustRight && exhaustRightMesh) {
+    if (toggleExhaustRight) {
         toggleExhaustRight.addEventListener('change', (e) => {
-            exhaustRightMesh.visible = e.target.checked;
-            console.log('Exhaust Right visibility:', e.target.checked);
+            rightMats.forEach(mat => {
+                mat.opacity = e.target.checked ? 1.0 : 0.0;
+                mat.transparent = !e.target.checked;
+            });
+            console.log('Right groups visibility:', e.target.checked);
         });
     }
 
     console.log('Engine visibility controls initialized');
+    console.log(`- Engine Block materials: ${engineBlockMats.length}`);
+    console.log(`- Left materials: ${leftMats.length}`);
+    console.log(`- Right materials: ${rightMats.length}`);
 }
 
 function init() {
@@ -836,67 +855,110 @@ function init() {
                 }
             });
 
-            // Split engine: Engine Block stays whole, other 3 groups split left/right
+            // Split 3 material groups into left/right, keep Engine Block whole
             if (engineMesh) {
+                const geometry = engineMesh.geometry;
                 const materials = Array.isArray(engineMesh.material) ? engineMesh.material : [engineMesh.material];
+                const positionAttr = geometry.attributes.position;
+                const oldIndex = geometry.index.array;
+                const oldGroups = geometry.groups.slice();
 
-                // Original mesh: show only Engine Block (grey_lght), hide others via opacity
-                materials.forEach(mat => {
-                    const matName = mat.name ? mat.name.toLowerCase() : '';
+                // Build new index buffer with reorganized triangles
+                const newIndexArray = [];
+                const newMaterials = [];
+                const newGroupsData = [];
+
+                oldGroups.forEach((group, groupIndex) => {
+                    const mat = materials[group.materialIndex];
+                    const matName = mat ? (mat.name ? mat.name.toLowerCase() : '') : '';
+
+                    // Engine Block (grey_lght): keep whole
                     if (matName === 'grey_lght') {
-                        mat.opacity = 1.0;
-                        mat.transparent = false;
+                        const groupStart = newIndexArray.length;
+                        for (let i = group.start; i < group.start + group.count; i++) {
+                            newIndexArray.push(oldIndex[i]);
+                        }
+                        newGroupsData.push({
+                            start: groupStart,
+                            count: group.count,
+                            materialIndex: newMaterials.length,
+                            name: matName
+                        });
+                        newMaterials.push(mat);
+                        console.log(`Group ${groupIndex}: ${matName} - kept whole (${group.count / 3} faces)`);
                     } else {
-                        mat.opacity = 0.0;
-                        mat.transparent = true;
+                        // Split this group into left/right based on vertex X position
+                        const leftIndices = [];
+                        const rightIndices = [];
+
+                        // Analyze each triangle in this group
+                        for (let i = group.start; i < group.start + group.count; i += 3) {
+                            const v1Idx = oldIndex[i];
+                            const v2Idx = oldIndex[i + 1];
+                            const v3Idx = oldIndex[i + 2];
+
+                            const x1 = positionAttr.getX(v1Idx);
+                            const x2 = positionAttr.getX(v2Idx);
+                            const x3 = positionAttr.getX(v3Idx);
+
+                            const avgX = (x1 + x2 + x3) / 3;
+
+                            if (avgX < 0) {
+                                leftIndices.push(v1Idx, v2Idx, v3Idx);
+                            } else {
+                                rightIndices.push(v1Idx, v2Idx, v3Idx);
+                            }
+                        }
+
+                        // Add left group
+                        if (leftIndices.length > 0) {
+                            const groupStart = newIndexArray.length;
+                            leftIndices.forEach(idx => newIndexArray.push(idx));
+                            newGroupsData.push({
+                                start: groupStart,
+                                count: leftIndices.length,
+                                materialIndex: newMaterials.length,
+                                name: matName + '_left'
+                            });
+                            const leftMat = mat.clone();
+                            leftMat.name = mat.name + '_left';
+                            newMaterials.push(leftMat);
+                            console.log(`Group ${groupIndex}: ${matName}_left - (${leftIndices.length / 3} faces)`);
+                        }
+
+                        // Add right group
+                        if (rightIndices.length > 0) {
+                            const groupStart = newIndexArray.length;
+                            rightIndices.forEach(idx => newIndexArray.push(idx));
+                            newGroupsData.push({
+                                start: groupStart,
+                                count: rightIndices.length,
+                                materialIndex: newMaterials.length,
+                                name: matName + '_right'
+                            });
+                            const rightMat = mat.clone();
+                            rightMat.name = mat.name + '_right';
+                            newMaterials.push(rightMat);
+                            console.log(`Group ${groupIndex}: ${matName}_right - (${rightIndices.length / 3} faces)`);
+                        }
                     }
                 });
 
-                // Clone for left side: show only the 3 splittable groups with x < 0
-                exhaustLeftMesh = engineMesh.clone();
-                exhaustLeftMesh.material = materials.map(m => m.clone());
-
-                const leftClipPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
-                exhaustLeftMesh.material.forEach(mat => {
-                    const matName = mat.name ? mat.name.toLowerCase() : '';
-                    if (matName === 'grey_lght') {
-                        mat.opacity = 0.0;
-                        mat.transparent = true;
-                    } else {
-                        mat.opacity = 1.0;
-                        mat.transparent = false;
-                        mat.clippingPlanes = [leftClipPlane];
-                        mat.clipShadows = true;
-                    }
+                // Update geometry with new index buffer and groups
+                geometry.setIndex(newIndexArray);
+                geometry.clearGroups();
+                newGroupsData.forEach(g => {
+                    geometry.addGroup(g.start, g.count, g.materialIndex);
                 });
-                kart.add(exhaustLeftMesh);
 
-                // Clone for right side: show only the 3 splittable groups with x > 0
-                exhaustRightMesh = engineMesh.clone();
-                exhaustRightMesh.material = materials.map(m => m.clone());
-
-                const rightClipPlane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);
-                exhaustRightMesh.material.forEach(mat => {
-                    const matName = mat.name ? mat.name.toLowerCase() : '';
-                    if (matName === 'grey_lght') {
-                        mat.opacity = 0.0;
-                        mat.transparent = true;
-                    } else {
-                        mat.opacity = 1.0;
-                        mat.transparent = false;
-                        mat.clippingPlanes = [rightClipPlane];
-                        mat.clipShadows = true;
-                    }
-                });
-                kart.add(exhaustRightMesh);
-
-                console.log('Engine Block stays whole, 3 groups split left/right');
+                engineMesh.material = newMaterials;
+                console.log(`Geometry rebuilt: ${oldGroups.length} groups -> ${newMaterials.length} groups`);
             }
 
             scene.add(kart);
             console.log('Downloaded kart model loaded successfully');
-            console.log('Exhaust Left:', exhaustLeftMesh ? 'Yes' : 'No');
-            console.log('Exhaust Right:', exhaustRightMesh ? 'Yes' : 'No');
+            console.log('Engine mesh:', engineMesh ? 'Yes' : 'No');
+            console.log('Material groups:', engineMesh ? engineMesh.material.length : 0);
             console.log('Wheel meshes found:', wheelMeshes.length);
             console.log('To test wheel rotation: window.kartSpeed = 5 (forward) or -5 (backward)');
 
@@ -929,22 +991,8 @@ function animate() {
 
     const time = currentTime * 0.001;
 
-    // Engine Block stays static (no animation)
-    // Only the split exhaust groups animate
-
-    // Exhaust Left animation (3 groups: gunmetal_light, gunmetal_dark, grey_dark)
-    if (exhaustLeftMesh) {
-        const exhaustLeftValue = Math.sin(time * 32 - 0.4) * 0.06;
-        const exhaustLeftScale = 1.0 + exhaustLeftValue;
-        exhaustLeftMesh.scale.set(exhaustLeftScale, exhaustLeftScale, exhaustLeftScale);
-    }
-
-    // Exhaust Right animation with phase offset
-    if (exhaustRightMesh) {
-        const exhaustRightValue = Math.sin(time * 32 - 0.8) * 0.07;
-        const exhaustRightScale = 1.0 + exhaustRightValue;
-        exhaustRightMesh.scale.set(exhaustRightScale, exhaustRightScale, exhaustRightScale);
-    }
+    // Engine animation: single mesh with 7 material groups
+    // TODO: Implement per-material-group animation when needed
 
     // Wheel rotation based on speed
     // Typical wheel radius ~0.2 units, angular velocity = linear velocity / radius
