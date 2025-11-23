@@ -5,8 +5,6 @@ import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 const canvas = document.getElementById('game-canvas');
 let scene, camera, renderer, controls;
 let engineMesh = null;
-let exhaust1 = null;
-let exhaust2 = null;
 let wheelMeshes = [];
 let kartSpeed = 0;
 
@@ -772,33 +770,9 @@ function init() {
                 }
             });
 
-            if (engineMesh) {
-                let exhaustIndex = 0;
-                engineMesh.traverse(function (child) {
-                    if (child !== engineMesh && child.isMesh) {
-                        const childName = child.name ? child.name.toLowerCase() : '';
-                        const hasExhaustMaterial = child.material && child.material.name &&
-                                                  child.material.name.toLowerCase().includes('exhaust');
-
-                        if (hasExhaustMaterial || (child.geometry && child.geometry.parameters &&
-                            child.geometry.parameters.radiusTop !== undefined)) {
-                            if (exhaustIndex === 0) {
-                                exhaust1 = child;
-                                exhaustIndex++;
-                            } else if (exhaustIndex === 1) {
-                                exhaust2 = child;
-                                exhaustIndex++;
-                            }
-                        }
-                    }
-                });
-            }
-
             scene.add(kart);
             console.log('Downloaded kart model loaded successfully');
             console.log('Engine mesh found:', engineMesh ? 'Yes' : 'No');
-            console.log('Exhaust 1 found:', exhaust1 ? 'Yes' : 'No');
-            console.log('Exhaust 2 found:', exhaust2 ? 'Yes' : 'No');
             console.log('Wheel meshes found:', wheelMeshes.length);
             console.log('To test wheel rotation: window.kartSpeed = 5 (forward) or -5 (backward)');
         },
@@ -829,19 +803,10 @@ function animate() {
 
     const time = currentTime * 0.001;
 
-    if (exhaust1) {
-        const exhaust1Scale = 1.0 + Math.sin(time * 32) * 0.06;
-        exhaust1.scale.set(exhaust1Scale, exhaust1Scale, exhaust1Scale);
-    }
-
-    if (exhaust2) {
-        const exhaust2Scale = 1.0 + Math.sin(time * 32 + Math.PI * 0.15) * 0.06;
-        exhaust2.scale.set(exhaust2Scale, exhaust2Scale, exhaust2Scale);
-    }
-
-    if (engineMesh && exhaust1 && exhaust2) {
-        const combinedPulse = (exhaust1.scale.x + exhaust2.scale.x) / 2;
-        const engineScale = 1.0 + (combinedPulse - 1.0) * 0.4;
+    if (engineMesh) {
+        const exhaust1 = Math.sin(time * 32) * 0.05;
+        const exhaust2 = Math.sin(time * 32 + Math.PI * 0.3) * 0.05;
+        const engineScale = 1.0 + (exhaust1 + exhaust2) / 2;
         engineMesh.scale.set(engineScale, engineScale, engineScale);
     }
 
