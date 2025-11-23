@@ -721,6 +721,14 @@ function init() {
 
                     if (name.includes('wheel') || name.includes('tire')) {
                         wheelMeshes.push(child);
+
+                        if (name.includes('hub') || name.includes('rim')) {
+                            child.material = new THREE.MeshStandardMaterial({
+                                color: 0xcccccc,
+                                metalness: 0.9,
+                                roughness: 0.2
+                            });
+                        }
                     }
 
                     if (name.includes('exhaust') || name.includes('muffler') || name.includes('pipe')) {
