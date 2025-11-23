@@ -641,49 +641,46 @@ function setupEngineVisibilityControls() {
 
     const materials = Array.isArray(engineMesh.material) ? engineMesh.material : [engineMesh.material];
 
-    // Group materials by type
-    const engineBlockMats = materials.filter(m => m.name && m.name.toLowerCase().includes('grey_lght'));
-    const leftMats = materials.filter(m => m.name && m.name.toLowerCase().includes('_left'));
-    const rightMats = materials.filter(m => m.name && m.name.toLowerCase().includes('_right'));
+    // Map material names to their material objects
+    const materialMap = {};
+    materials.forEach(mat => {
+        if (mat.name) {
+            const name = mat.name.toLowerCase();
+            materialMap[name] = mat;
+        }
+    });
 
-    const toggleEngineBlock = document.getElementById('toggle-engine');
-    const toggleExhaustLeft = document.getElementById('toggle-exhaust-left');
-    const toggleExhaustRight = document.getElementById('toggle-exhaust-right');
+    // Define all 7 toggles with their corresponding material name patterns
+    const toggleConfig = [
+        { id: 'toggle-engine-block', pattern: 'grey_lght', label: 'Engine Block' },
+        { id: 'toggle-exhaust-upper-left', pattern: 'gunmetal_light_left', label: 'Exhaust Upper Left' },
+        { id: 'toggle-exhaust-upper-right', pattern: 'gunmetal_light_right', label: 'Exhaust Upper Right' },
+        { id: 'toggle-exhaust-lower-left', pattern: 'gunmetal_dark_left', label: 'Exhaust Lower Left' },
+        { id: 'toggle-exhaust-lower-right', pattern: 'gunmetal_dark_right', label: 'Exhaust Lower Right' },
+        { id: 'toggle-engine-casing-left', pattern: 'grey_dark_left', label: 'Engine Casing Left' },
+        { id: 'toggle-engine-casing-right', pattern: 'grey_dark_right', label: 'Engine Casing Right' }
+    ];
 
-    if (toggleEngineBlock) {
-        toggleEngineBlock.addEventListener('change', (e) => {
-            engineBlockMats.forEach(mat => {
-                mat.opacity = e.target.checked ? 1.0 : 0.0;
-                mat.transparent = !e.target.checked;
+    // Wire up each toggle
+    toggleConfig.forEach(config => {
+        const toggle = document.getElementById(config.id);
+        const material = materialMap[config.pattern];
+
+        if (toggle && material) {
+            toggle.addEventListener('change', (e) => {
+                material.opacity = e.target.checked ? 1.0 : 0.0;
+                material.transparent = !e.target.checked;
+                console.log(`${config.label} visibility:`, e.target.checked);
             });
-            console.log('Engine Block visibility:', e.target.checked);
-        });
-    }
-
-    if (toggleExhaustLeft) {
-        toggleExhaustLeft.addEventListener('change', (e) => {
-            leftMats.forEach(mat => {
-                mat.opacity = e.target.checked ? 1.0 : 0.0;
-                mat.transparent = !e.target.checked;
-            });
-            console.log('Left groups visibility:', e.target.checked);
-        });
-    }
-
-    if (toggleExhaustRight) {
-        toggleExhaustRight.addEventListener('change', (e) => {
-            rightMats.forEach(mat => {
-                mat.opacity = e.target.checked ? 1.0 : 0.0;
-                mat.transparent = !e.target.checked;
-            });
-            console.log('Right groups visibility:', e.target.checked);
-        });
-    }
+            console.log(`✓ ${config.label} control wired up`);
+        } else {
+            if (!toggle) console.warn(`✗ Toggle not found: ${config.id}`);
+            if (!material) console.warn(`✗ Material not found: ${config.pattern}`);
+        }
+    });
 
     console.log('Engine visibility controls initialized');
-    console.log(`- Engine Block materials: ${engineBlockMats.length}`);
-    console.log(`- Left materials: ${leftMats.length}`);
-    console.log(`- Right materials: ${rightMats.length}`);
+    console.log('Available materials:', Object.keys(materialMap));
 }
 
 function init() {
