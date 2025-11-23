@@ -710,7 +710,6 @@ function init() {
 
             kart.position.y = 0;
 
-            let exhaustCount = 0;
             kart.traverse(function (child) {
                 if (child.isMesh) {
                     child.castShadow = true;
@@ -720,56 +719,6 @@ function init() {
 
                     if (name.includes('engine')) {
                         engineMesh = child;
-
-                        child.traverse(function (subChild) {
-                            if (subChild.isMesh && subChild.geometry && subChild.geometry.type === 'CylinderGeometry') {
-                                if (exhaustCount === 0) {
-                                    exhaust1 = subChild;
-                                    exhaustCount++;
-                                } else if (exhaustCount === 1) {
-                                    exhaust2 = subChild;
-                                    exhaustCount++;
-                                }
-                            }
-                        });
-
-                        if (child.material) {
-                            child.material = new THREE.MeshStandardMaterial({
-                                color: 0x555555,
-                                metalness: 0.8,
-                                roughness: 0.3
-                            });
-                        }
-                    }
-
-                    if (name.includes('axel') || name.includes('axle')) {
-                        if (child.material) {
-                            child.material = new THREE.MeshStandardMaterial({
-                                color: 0x888888,
-                                metalness: 0.9,
-                                roughness: 0.2
-                            });
-                        }
-                    }
-
-                    if (name.includes('seat')) {
-                        if (child.material) {
-                            child.material = new THREE.MeshStandardMaterial({
-                                color: 0x1a1a1a,
-                                metalness: 0,
-                                roughness: 0.85
-                            });
-                        }
-                    }
-
-                    if (name.includes('mainbody')) {
-                        if (child.material) {
-                            child.material = new THREE.MeshStandardMaterial({
-                                color: 0xcc3333,
-                                metalness: 0.2,
-                                roughness: 0.6
-                            });
-                        }
                     }
 
                     if (name.includes('wheel') || name.includes('tire')) {
@@ -780,24 +729,70 @@ function init() {
                                 const matName = mat.name ? mat.name.toLowerCase() : '';
 
                                 if (matName.includes('rim')) {
-                                    return new THREE.MeshStandardMaterial({
-                                        color: 0xcccccc,
-                                        metalness: 0.9,
-                                        roughness: 0.2
-                                    });
+                                    const newMat = mat.clone();
+                                    newMat.metalness = 0.9;
+                                    newMat.roughness = 0.2;
+                                    return newMat;
                                 } else if (matName.includes('tyre') || matName.includes('tire')) {
-                                    return new THREE.MeshStandardMaterial({
-                                        color: 0x0a0a0a,
-                                        metalness: 0,
-                                        roughness: 0.95
-                                    });
+                                    const newMat = mat.clone();
+                                    newMat.metalness = 0;
+                                    newMat.roughness = 0.95;
+                                    return newMat;
                                 }
                                 return mat;
                             });
                         }
                     }
+
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(mat => {
+                                if (mat.map) {
+                                    const matName = mat.name ? mat.name.toLowerCase() : '';
+                                    if (matName.includes('metal') || name.includes('axel') || name.includes('axle')) {
+                                        mat.metalness = 0.8;
+                                        mat.roughness = 0.3;
+                                    } else if (matName.includes('fabric') || name.includes('seat')) {
+                                        mat.metalness = 0;
+                                        mat.roughness = 0.9;
+                                    }
+                                }
+                            });
+                        } else if (child.material.map) {
+                            const matName = child.material.name ? child.material.name.toLowerCase() : '';
+                            if (matName.includes('metal') || name.includes('axel') || name.includes('axle')) {
+                                child.material.metalness = 0.8;
+                                child.material.roughness = 0.3;
+                            } else if (matName.includes('fabric') || name.includes('seat')) {
+                                child.material.metalness = 0;
+                                child.material.roughness = 0.9;
+                            }
+                        }
+                    }
                 }
             });
+
+            if (engineMesh) {
+                let exhaustIndex = 0;
+                engineMesh.traverse(function (child) {
+                    if (child !== engineMesh && child.isMesh) {
+                        const childName = child.name ? child.name.toLowerCase() : '';
+                        const hasExhaustMaterial = child.material && child.material.name &&
+                                                  child.material.name.toLowerCase().includes('exhaust');
+
+                        if (hasExhaustMaterial || (child.geometry && child.geometry.parameters &&
+                            child.geometry.parameters.radiusTop !== undefined)) {
+                            if (exhaustIndex === 0) {
+                                exhaust1 = child;
+                                exhaustIndex++;
+                            } else if (exhaustIndex === 1) {
+                                exhaust2 = child;
+                                exhaustIndex++;
+                            }
+                        }
+                    }
+                });
+            }
 
             scene.add(kart);
             console.log('Downloaded kart model loaded successfully');
@@ -834,19 +829,20 @@ function animate() {
 
     const time = currentTime * 0.001;
 
-    if (engineMesh) {
-        const engineScale = 1.0 + Math.sin(time * 32) * 0.03;
-        engineMesh.scale.set(engineScale, engineScale, engineScale);
-    }
-
     if (exhaust1) {
-        const exhaust1Scale = 1.0 + Math.sin(time * 32 + Math.PI * 0.7) * 0.05;
+        const exhaust1Scale = 1.0 + Math.sin(time * 32) * 0.06;
         exhaust1.scale.set(exhaust1Scale, exhaust1Scale, exhaust1Scale);
     }
 
     if (exhaust2) {
-        const exhaust2Scale = 1.0 + Math.sin(time * 32 + Math.PI * 0.85) * 0.05;
+        const exhaust2Scale = 1.0 + Math.sin(time * 32 + Math.PI * 0.15) * 0.06;
         exhaust2.scale.set(exhaust2Scale, exhaust2Scale, exhaust2Scale);
+    }
+
+    if (engineMesh && exhaust1 && exhaust2) {
+        const combinedPulse = (exhaust1.scale.x + exhaust2.scale.x) / 2;
+        const engineScale = 1.0 + (combinedPulse - 1.0) * 0.4;
+        engineMesh.scale.set(engineScale, engineScale, engineScale);
     }
 
     // Wheel rotation based on speed
