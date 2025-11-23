@@ -722,7 +722,8 @@ function init() {
                     if (name.includes('wheel') || name.includes('tire')) {
                         wheelMeshes.push(child);
 
-                        if (name.includes('hub') || name.includes('rim')) {
+                        const materialName = child.material && child.material.name ? child.material.name.toLowerCase() : '';
+                        if (materialName.includes('rim')) {
                             child.material = new THREE.MeshStandardMaterial({
                                 color: 0xcccccc,
                                 metalness: 0.9,
