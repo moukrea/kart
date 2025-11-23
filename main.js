@@ -5,14 +5,8 @@ import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 const canvas = document.getElementById('game-canvas');
 let scene, camera, renderer, controls;
 let engineMesh = null;
-let engineMaterials = {
-    engineBlock: null,      // grey_lght - index 0
-    exhaustUpper: null,     // gunmetal_light - index 1
-    exhaustLower: null,     // gunmetal_dark - index 2
-    engineCasing: null      // grey_dark - index 3
-};
-let exhaustProxy1 = null;
-let exhaustProxy2 = null;
+let exhaustLeftMesh = null;
+let exhaustRightMesh = null;
 let wheelMeshes = [];
 let kartSpeed = 0;
 
@@ -645,42 +639,32 @@ function createKart() {
 }
 
 function setupEngineVisibilityControls() {
-    // Wire up checkbox event listeners to control material visibility
-    const toggleEngineBlock = document.getElementById('toggle-engine-block');
-    const toggleExhaustUpper = document.getElementById('toggle-exhaust-upper');
-    const toggleExhaustLower = document.getElementById('toggle-exhaust-lower');
-    const toggleEngineCasing = document.getElementById('toggle-engine-casing');
+    const toggleEngine = document.getElementById('toggle-engine');
+    const toggleExhaustLeft = document.getElementById('toggle-exhaust-left');
+    const toggleExhaustRight = document.getElementById('toggle-exhaust-right');
 
-    if (toggleEngineBlock && engineMaterials.engineBlock) {
-        toggleEngineBlock.addEventListener('change', (e) => {
-            engineMaterials.engineBlock.visible = e.target.checked;
-            console.log('Engine Block visibility:', e.target.checked);
+    if (toggleEngine && engineMesh) {
+        toggleEngine.addEventListener('change', (e) => {
+            engineMesh.visible = e.target.checked;
+            console.log('Engine visibility:', e.target.checked);
         });
     }
 
-    if (toggleExhaustUpper && engineMaterials.exhaustUpper) {
-        toggleExhaustUpper.addEventListener('change', (e) => {
-            engineMaterials.exhaustUpper.visible = e.target.checked;
-            console.log('Exhaust Upper visibility:', e.target.checked);
+    if (toggleExhaustLeft && exhaustLeftMesh) {
+        toggleExhaustLeft.addEventListener('change', (e) => {
+            exhaustLeftMesh.visible = e.target.checked;
+            console.log('Exhaust Left visibility:', e.target.checked);
         });
     }
 
-    if (toggleExhaustLower && engineMaterials.exhaustLower) {
-        toggleExhaustLower.addEventListener('change', (e) => {
-            engineMaterials.exhaustLower.visible = e.target.checked;
-            console.log('Exhaust Lower visibility:', e.target.checked);
-        });
-    }
-
-    if (toggleEngineCasing && engineMaterials.engineCasing) {
-        toggleEngineCasing.addEventListener('change', (e) => {
-            engineMaterials.engineCasing.visible = e.target.checked;
-            console.log('Engine Casing visibility:', e.target.checked);
+    if (toggleExhaustRight && exhaustRightMesh) {
+        toggleExhaustRight.addEventListener('change', (e) => {
+            exhaustRightMesh.visible = e.target.checked;
+            console.log('Exhaust Right visibility:', e.target.checked);
         });
     }
 
     console.log('Engine visibility controls initialized');
-    console.log('Engine materials:', engineMaterials);
 }
 
 function init() {
@@ -700,6 +684,7 @@ function init() {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
+    renderer.localClippingEnabled = true;
 
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -789,7 +774,7 @@ function init() {
                                 newMat.color.setHex(0xc0c0c0);
                                 newMat.metalness = 0.9;
                                 newMat.roughness = 0.2;
-                                newMat.map = null; // Remove texture
+                                newMat.map = null;
                                 return newMat;
                             }
 
@@ -802,21 +787,8 @@ function init() {
 
                             // ENGINE: all engine materials become metallic, preserve colors
                             if (isEngine) {
-                                const colorVariance = Math.random() * 0.2;
-                                newMat.metalness = 0.7 + colorVariance;
-                                newMat.roughness = 0.2 + colorVariance;
-
-                                // Store references to engine materials by name
-                                if (matName === 'grey_lght') {
-                                    engineMaterials.engineBlock = newMat;
-                                } else if (matName === 'gunmetal_light') {
-                                    engineMaterials.exhaustUpper = newMat;
-                                } else if (matName === 'gunmetal_dark') {
-                                    engineMaterials.exhaustLower = newMat;
-                                } else if (matName === 'grey_dark') {
-                                    engineMaterials.engineCasing = newMat;
-                                }
-
+                                newMat.metalness = 0.7;
+                                newMat.roughness = 0.3;
                                 return newMat;
                             }
 
@@ -837,11 +809,9 @@ function init() {
                             // STEERING WHEEL: rubbery for wheel part, metallic for column
                             if (name.includes('steeringwheel') || name.includes('steering_wheel')) {
                                 if (matName.includes('grey_dark')) {
-                                    // Steering wheel grip - rubbery
                                     newMat.metalness = 0;
                                     newMat.roughness = 0.85;
                                 } else {
-                                    // Steering column parts - metallic
                                     newMat.metalness = 0.8;
                                     newMat.roughness = 0.3;
                                 }
@@ -861,59 +831,58 @@ function init() {
                             return newMat;
                         });
 
-                        // Apply processed materials back to the mesh
                         child.material = Array.isArray(child.material) ? processedMaterials : processedMaterials[0];
                     }
                 }
             });
 
-            // Create exhaust proxy geometries if engine was found
+            // Clone engine mesh for left/right split while preserving all material groups
             if (engineMesh) {
-                const engineBBox = new THREE.Box3().setFromObject(engineMesh);
-                const engineMax = engineBBox.max;
-                const engineMin = engineBBox.min;
+                // Clone for left side - clips everything with x > 0
+                exhaustLeftMesh = engineMesh.clone();
+                exhaustLeftMesh.material = Array.isArray(engineMesh.material)
+                    ? engineMesh.material.map(m => m.clone())
+                    : engineMesh.material.clone();
 
-                // Small cone geometries to represent exhaust puffs
-                const exhaustGeometry = new THREE.ConeGeometry(0.03, 0.08, 8);
-                const exhaustMaterial1 = new THREE.MeshStandardMaterial({
-                    color: 0x808080,
-                    metalness: 0.9,
-                    roughness: 0.2,
-                    transparent: true,
-                    opacity: 0.7
+                const leftClipPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+                const leftMaterials = Array.isArray(exhaustLeftMesh.material)
+                    ? exhaustLeftMesh.material
+                    : [exhaustLeftMesh.material];
+                leftMaterials.forEach(mat => {
+                    mat.clippingPlanes = [leftClipPlane];
+                    mat.clipShadows = true;
                 });
-                const exhaustMaterial2 = exhaustMaterial1.clone();
+                kart.add(exhaustLeftMesh);
 
-                // Position exhaust proxy 1 at right rear of engine
-                exhaustProxy1 = new THREE.Mesh(exhaustGeometry, exhaustMaterial1);
-                exhaustProxy1.position.copy(engineMesh.position);
-                exhaustProxy1.position.x += engineMax.x + 0.08;
-                exhaustProxy1.position.y += engineMax.y + 0.05;
-                exhaustProxy1.position.z += engineMin.z - 0.05;
-                exhaustProxy1.rotation.x = Math.PI / 2; // Point backward
-                exhaustProxy1.castShadow = true;
-                kart.add(exhaustProxy1);
+                // Clone for right side - clips everything with x < 0
+                exhaustRightMesh = engineMesh.clone();
+                exhaustRightMesh.material = Array.isArray(engineMesh.material)
+                    ? engineMesh.material.map(m => m.clone())
+                    : engineMesh.material.clone();
 
-                // Position exhaust proxy 2 at slightly different position
-                exhaustProxy2 = new THREE.Mesh(exhaustGeometry, exhaustMaterial2);
-                exhaustProxy2.position.copy(engineMesh.position);
-                exhaustProxy2.position.x += engineMax.x + 0.04;
-                exhaustProxy2.position.y += engineMax.y + 0.08;
-                exhaustProxy2.position.z += engineMin.z - 0.08;
-                exhaustProxy2.rotation.x = Math.PI / 2; // Point backward
-                exhaustProxy2.castShadow = true;
-                kart.add(exhaustProxy2);
+                const rightClipPlane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);
+                const rightMaterials = Array.isArray(exhaustRightMesh.material)
+                    ? exhaustRightMesh.material
+                    : [exhaustRightMesh.material];
+                rightMaterials.forEach(mat => {
+                    mat.clippingPlanes = [rightClipPlane];
+                    mat.clipShadows = true;
+                });
+                kart.add(exhaustRightMesh);
 
-                console.log('Exhaust proxies created at:', exhaustProxy1.position, exhaustProxy2.position);
+                // Hide original engine mesh
+                engineMesh.visible = false;
+
+                console.log('Engine split into left/right with clipping planes (preserving all material groups)');
             }
 
             scene.add(kart);
             console.log('Downloaded kart model loaded successfully');
-            console.log('Engine mesh found:', engineMesh ? 'Yes' : 'No');
+            console.log('Exhaust Left:', exhaustLeftMesh ? 'Yes' : 'No');
+            console.log('Exhaust Right:', exhaustRightMesh ? 'Yes' : 'No');
             console.log('Wheel meshes found:', wheelMeshes.length);
             console.log('To test wheel rotation: window.kartSpeed = 5 (forward) or -5 (backward)');
 
-            // Setup visibility toggle controls for engine components
             setupEngineVisibilityControls();
         },
         function (xhr) {
@@ -943,32 +912,25 @@ function animate() {
 
     const time = currentTime * 0.001;
 
-    // Engine vibration: sin(time * 32) * 0.05
-    if (engineMesh) {
+    // Engine core vibration: sin(time * 32) * 0.05
+    if (engineMesh && engineMesh.visible) {
         const engineVibration = Math.sin(time * 32) * 0.05;
         const engineScale = 1.0 + engineVibration;
         engineMesh.scale.set(engineScale, engineScale, engineScale);
     }
 
-    // Animate exhaust proxies with staggered timing (cartoony effect)
-    if (exhaustProxy1) {
-        // Exhaust 1: sin(time * 32 - 0.4) * 0.06
-        const exhaust1Value = Math.sin(time * 32 - 0.4) * 0.06;
-        const exhaust1Scale = 1.0 + exhaust1Value;
-        exhaustProxy1.scale.set(exhaust1Scale, exhaust1Scale, exhaust1Scale * 1.5); // Elongate in Z for puff effect
-
-        // Pulse opacity for cartoony effect
-        exhaustProxy1.material.opacity = 0.4 + Math.max(0, exhaust1Value) * 5;
+    // Exhaust Left animation with phase delay
+    if (exhaustLeftMesh) {
+        const exhaustLeftValue = Math.sin(time * 32 - 0.4) * 0.06;
+        const exhaustLeftScale = 1.0 + exhaustLeftValue;
+        exhaustLeftMesh.scale.set(exhaustLeftScale, exhaustLeftScale, exhaustLeftScale);
     }
 
-    if (exhaustProxy2) {
-        // Exhaust 2: sin(time * 32 - 0.8) * 0.07
-        const exhaust2Value = Math.sin(time * 32 - 0.8) * 0.07;
-        const exhaust2Scale = 1.0 + exhaust2Value;
-        exhaustProxy2.scale.set(exhaust2Scale, exhaust2Scale, exhaust2Scale * 1.5); // Elongate in Z for puff effect
-
-        // Pulse opacity for cartoony effect
-        exhaustProxy2.material.opacity = 0.4 + Math.max(0, exhaust2Value) * 6;
+    // Exhaust Right animation with greater phase delay
+    if (exhaustRightMesh) {
+        const exhaustRightValue = Math.sin(time * 32 - 0.8) * 0.07;
+        const exhaustRightScale = 1.0 + exhaustRightValue;
+        exhaustRightMesh.scale.set(exhaustRightScale, exhaustRightScale, exhaustRightScale);
     }
 
     // Wheel rotation based on speed
