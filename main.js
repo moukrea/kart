@@ -147,6 +147,42 @@ function createKart() {
     sidePodRight.castShadow = true;
     kart.add(sidePodRight);
 
+    const frameLeftLong = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 1.30, 12),
+        new THREE.MeshStandardMaterial({ color: gray, metalness: 0.7, roughness: 0.3 })
+    );
+    frameLeftLong.position.set(-0.30, 0.06, 0);
+    frameLeftLong.rotation.z = Math.PI / 2;
+    frameLeftLong.castShadow = true;
+    kart.add(frameLeftLong);
+
+    const frameRightLong = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 1.30, 12),
+        new THREE.MeshStandardMaterial({ color: gray, metalness: 0.7, roughness: 0.3 })
+    );
+    frameRightLong.position.set(0.30, 0.06, 0);
+    frameRightLong.rotation.z = Math.PI / 2;
+    frameRightLong.castShadow = true;
+    kart.add(frameRightLong);
+
+    const frameCrossFront = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.60, 12),
+        new THREE.MeshStandardMaterial({ color: gray, metalness: 0.7, roughness: 0.3 })
+    );
+    frameCrossFront.position.set(0, 0.06, 0.50);
+    frameCrossFront.rotation.z = Math.PI / 2;
+    frameCrossFront.castShadow = true;
+    kart.add(frameCrossFront);
+
+    const frameCrossRear = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.65, 12),
+        new THREE.MeshStandardMaterial({ color: gray, metalness: 0.7, roughness: 0.3 })
+    );
+    frameCrossRear.position.set(0, 0.08, -0.40);
+    frameCrossRear.rotation.z = Math.PI / 2;
+    frameCrossRear.castShadow = true;
+    kart.add(frameCrossRear);
+
     const steeringWheel = new THREE.Mesh(
         new THREE.TorusGeometry(0.09, 0.011, 12, 32),
         new THREE.MeshStandardMaterial({ color: black, roughness: 0.7 })
