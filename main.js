@@ -717,23 +717,24 @@ function init() {
                     const name = child.name.toLowerCase();
                     if (name.includes('engine')) {
                         engineMesh = child;
+                        exhaustMeshes.push(child);
                     }
 
                     if (name.includes('wheel') || name.includes('tire')) {
                         wheelMeshes.push(child);
 
-                        const materialName = child.material && child.material.name ? child.material.name.toLowerCase() : '';
-                        if (materialName.includes('rim')) {
-                            child.material = new THREE.MeshStandardMaterial({
-                                color: 0xcccccc,
-                                metalness: 0.9,
-                                roughness: 0.2
+                        if (Array.isArray(child.material)) {
+                            child.material = child.material.map(mat => {
+                                if (mat.name && mat.name.toLowerCase().includes('rim')) {
+                                    return new THREE.MeshStandardMaterial({
+                                        color: 0xcccccc,
+                                        metalness: 0.9,
+                                        roughness: 0.2
+                                    });
+                                }
+                                return mat;
                             });
                         }
-                    }
-
-                    if (name.includes('exhaust') || name.includes('muffler') || name.includes('pipe')) {
-                        exhaustMeshes.push(child);
                     }
                 }
             });
