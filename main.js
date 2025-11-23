@@ -126,7 +126,7 @@ function createFrame() {
     const tubeRadius = 0.016;
 
     const leftRail = new THREE.Mesh(
-        new THREE.CylinderGeometry(tubeRadius, tubeRadius, 1.7, 8),
+        new THREE.CylinderGeometry(tubeRadius, tubeRadius, 1.05, 8),
         frameMaterial
     );
     leftRail.rotation.z = Math.PI / 2;
@@ -135,7 +135,7 @@ function createFrame() {
     frameGroup.add(leftRail);
 
     const rightRail = new THREE.Mesh(
-        new THREE.CylinderGeometry(tubeRadius, tubeRadius, 1.7, 8),
+        new THREE.CylinderGeometry(tubeRadius, tubeRadius, 1.05, 8),
         frameMaterial
     );
     rightRail.rotation.z = Math.PI / 2;
@@ -149,7 +149,7 @@ function createFrame() {
     );
     frontCross.rotation.z = Math.PI / 2;
     frontCross.rotation.y = Math.PI / 2;
-    frontCross.position.set(0, 0.08, 0.85);
+    frontCross.position.set(0, 0.08, 0.525);
     frontCross.castShadow = true;
     frameGroup.add(frontCross);
 
@@ -159,7 +159,7 @@ function createFrame() {
     );
     rearCross.rotation.z = Math.PI / 2;
     rearCross.rotation.y = Math.PI / 2;
-    rearCross.position.set(0, 0.08, -0.85);
+    rearCross.position.set(0, 0.08, -0.525);
     rearCross.castShadow = true;
     frameGroup.add(rearCross);
 
@@ -169,7 +169,7 @@ function createFrame() {
     );
     middleCross1.rotation.z = Math.PI / 2;
     middleCross1.rotation.y = Math.PI / 2;
-    middleCross1.position.set(0, 0.08, 0.25);
+    middleCross1.position.set(0, 0.08, 0.18);
     middleCross1.castShadow = true;
     frameGroup.add(middleCross1);
 
@@ -179,7 +179,7 @@ function createFrame() {
     );
     middleCross2.rotation.z = Math.PI / 2;
     middleCross2.rotation.y = Math.PI / 2;
-    middleCross2.position.set(0, 0.08, -0.25);
+    middleCross2.position.set(0, 0.08, -0.18);
     middleCross2.castShadow = true;
     frameGroup.add(middleCross2);
 
@@ -187,7 +187,7 @@ function createFrame() {
         new THREE.CylinderGeometry(tubeRadius, tubeRadius, 0.35, 8),
         frameMaterial
     );
-    rollBarLeft.position.set(-0.18, 0.255, -0.25);
+    rollBarLeft.position.set(-0.18, 0.255, -0.18);
     rollBarLeft.castShadow = true;
     frameGroup.add(rollBarLeft);
 
@@ -195,7 +195,7 @@ function createFrame() {
         new THREE.CylinderGeometry(tubeRadius, tubeRadius, 0.35, 8),
         frameMaterial
     );
-    rollBarRight.position.set(0.18, 0.255, -0.25);
+    rollBarRight.position.set(0.18, 0.255, -0.18);
     rollBarRight.castShadow = true;
     frameGroup.add(rollBarRight);
 
@@ -205,9 +205,29 @@ function createFrame() {
     );
     rollBarTop.rotation.z = Math.PI / 2;
     rollBarTop.rotation.y = Math.PI / 2;
-    rollBarTop.position.set(0, 0.43, -0.25);
+    rollBarTop.position.set(0, 0.43, -0.18);
     rollBarTop.castShadow = true;
     frameGroup.add(rollBarTop);
+
+    const frontBumper = new THREE.Mesh(
+        new THREE.CylinderGeometry(tubeRadius * 1.2, tubeRadius * 1.2, 1.0, 8),
+        frameMaterial
+    );
+    frontBumper.rotation.z = Math.PI / 2;
+    frontBumper.rotation.y = Math.PI / 2;
+    frontBumper.position.set(0, 0.05, 0.56);
+    frontBumper.castShadow = true;
+    frameGroup.add(frontBumper);
+
+    const rearBumper = new THREE.Mesh(
+        new THREE.CylinderGeometry(tubeRadius * 1.2, tubeRadius * 1.2, 1.15, 8),
+        frameMaterial
+    );
+    rearBumper.rotation.z = Math.PI / 2;
+    rearBumper.rotation.y = Math.PI / 2;
+    rearBumper.position.set(0, 0.05, -0.56);
+    rearBumper.castShadow = true;
+    frameGroup.add(rearBumper);
 
     return frameGroup;
 }
