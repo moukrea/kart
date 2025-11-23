@@ -691,8 +691,9 @@ function init() {
     scene.add(ground);
 
     const loader = new ColladaLoader();
+    const modelPath = import.meta.env.BASE_URL + 'assets/models/kart/pipeframe64_mario.dae';
     loader.load(
-        '/assets/models/kart/pipeframe64_mario.dae',
+        modelPath,
         function (collada) {
             const kart = collada.scene;
 
