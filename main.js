@@ -723,11 +723,8 @@ function init() {
                         wheelMeshes.push(child);
                     }
 
-                    if (child.geometry && child.geometry.type === 'CylinderGeometry') {
-                        const parent = child.parent;
-                        if (parent && parent.name.toLowerCase().includes('engine')) {
-                            exhaustMeshes.push(child);
-                        }
+                    if (name.includes('exhaust') || name.includes('muffler') || name.includes('pipe')) {
+                        exhaustMeshes.push(child);
                     }
                 }
             });
@@ -767,12 +764,12 @@ function animate() {
     const time = currentTime * 0.001;
 
     if (engineMesh) {
-        const engineScale = 1.0 + Math.sin(time * 35) * 0.03;
+        const engineScale = 1.0 + Math.sin(time * 32) * 0.03;
         engineMesh.scale.set(engineScale, engineScale, engineScale);
     }
 
     if (exhaustMeshes.length > 0) {
-        const exhaustScale = 1.0 + Math.sin(time * 35 + Math.PI * 0.9) * 0.05;
+        const exhaustScale = 1.0 + Math.sin(time * 38 + Math.PI * 0.5) * 0.05;
         exhaustMeshes.forEach(exhaust => {
             exhaust.scale.set(exhaustScale, exhaustScale, exhaustScale);
         });
