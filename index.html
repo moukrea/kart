@@ -12,6 +12,36 @@
         <p>Drag to rotate - Scroll to zoom</p>
         <canvas id="game-canvas"></canvas>
     </div>
+    <div id="controls" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: monospace; font-size: 12px;">
+        <div style="margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #666; padding-bottom: 5px;">Engine Component Visibility</div>
+        <div style="margin-bottom: 8px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-engine-block" checked style="margin-right: 8px;">
+                <span>Engine Block</span>
+            </label>
+        </div>
+        <div style="margin-bottom: 8px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-exhaust-upper" checked style="margin-right: 8px;">
+                <span>Exhaust Upper</span>
+            </label>
+        </div>
+        <div style="margin-bottom: 8px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-exhaust-lower" checked style="margin-right: 8px;">
+                <span>Exhaust Lower</span>
+            </label>
+        </div>
+        <div style="margin-bottom: 8px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-engine-casing" checked style="margin-right: 8px;">
+                <span>Engine Casing</span>
+            </label>
+        </div>
+        <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #666; font-size: 11px; color: #aaa;">
+            Toggle checkboxes to identify components
+        </div>
+    </div>
     <script type="module" src="/main.js"></script>
 </body>
 </html>

@@ -5,6 +5,12 @@ import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 const canvas = document.getElementById('game-canvas');
 let scene, camera, renderer, controls;
 let engineMesh = null;
+let engineMaterials = {
+    engineBlock: null,      // grey_lght - index 0
+    exhaustUpper: null,     // gunmetal_light - index 1
+    exhaustLower: null,     // gunmetal_dark - index 2
+    engineCasing: null      // grey_dark - index 3
+};
 let exhaustProxy1 = null;
 let exhaustProxy2 = null;
 let wheelMeshes = [];
@@ -638,6 +644,45 @@ function createKart() {
     return kart;
 }
 
+function setupEngineVisibilityControls() {
+    // Wire up checkbox event listeners to control material visibility
+    const toggleEngineBlock = document.getElementById('toggle-engine-block');
+    const toggleExhaustUpper = document.getElementById('toggle-exhaust-upper');
+    const toggleExhaustLower = document.getElementById('toggle-exhaust-lower');
+    const toggleEngineCasing = document.getElementById('toggle-engine-casing');
+
+    if (toggleEngineBlock && engineMaterials.engineBlock) {
+        toggleEngineBlock.addEventListener('change', (e) => {
+            engineMaterials.engineBlock.visible = e.target.checked;
+            console.log('Engine Block visibility:', e.target.checked);
+        });
+    }
+
+    if (toggleExhaustUpper && engineMaterials.exhaustUpper) {
+        toggleExhaustUpper.addEventListener('change', (e) => {
+            engineMaterials.exhaustUpper.visible = e.target.checked;
+            console.log('Exhaust Upper visibility:', e.target.checked);
+        });
+    }
+
+    if (toggleExhaustLower && engineMaterials.exhaustLower) {
+        toggleExhaustLower.addEventListener('change', (e) => {
+            engineMaterials.exhaustLower.visible = e.target.checked;
+            console.log('Exhaust Lower visibility:', e.target.checked);
+        });
+    }
+
+    if (toggleEngineCasing && engineMaterials.engineCasing) {
+        toggleEngineCasing.addEventListener('change', (e) => {
+            engineMaterials.engineCasing.visible = e.target.checked;
+            console.log('Engine Casing visibility:', e.target.checked);
+        });
+    }
+
+    console.log('Engine visibility controls initialized');
+    console.log('Engine materials:', engineMaterials);
+}
+
 function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
@@ -729,7 +774,7 @@ function init() {
                         const materials = Array.isArray(child.material) ? child.material : [child.material];
                         const isEngine = name.includes('engine');
 
-                        const processedMaterials = materials.map(mat => {
+                        const processedMaterials = materials.map((mat, idx) => {
                             const matName = mat.name ? mat.name.toLowerCase() : '';
 
                             // Convert to MeshStandardMaterial for PBR support
@@ -760,6 +805,18 @@ function init() {
                                 const colorVariance = Math.random() * 0.2;
                                 newMat.metalness = 0.7 + colorVariance;
                                 newMat.roughness = 0.2 + colorVariance;
+
+                                // Store references to engine materials by name
+                                if (matName === 'grey_lght') {
+                                    engineMaterials.engineBlock = newMat;
+                                } else if (matName === 'gunmetal_light') {
+                                    engineMaterials.exhaustUpper = newMat;
+                                } else if (matName === 'gunmetal_dark') {
+                                    engineMaterials.exhaustLower = newMat;
+                                } else if (matName === 'grey_dark') {
+                                    engineMaterials.engineCasing = newMat;
+                                }
+
                                 return newMat;
                             }
 
@@ -855,6 +912,9 @@ function init() {
             console.log('Engine mesh found:', engineMesh ? 'Yes' : 'No');
             console.log('Wheel meshes found:', wheelMeshes.length);
             console.log('To test wheel rotation: window.kartSpeed = 5 (forward) or -5 (backward)');
+
+            // Setup visibility toggle controls for engine components
+            setupEngineVisibilityControls();
         },
         function (xhr) {
             console.log('Loading model: ' + (xhr.loaded / xhr.total * 100).toFixed(0) + '%');
