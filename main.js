@@ -302,6 +302,281 @@ function createKart() {
     radiator.castShadow = true;
     kart.add(radiator);
 
+    const fuelTank = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.10, 0.10, 0.16, 16),
+        new THREE.MeshStandardMaterial({ color: black, metalness: 0.4, roughness: 0.6 })
+    );
+    fuelTank.position.set(0, 0.24, -0.22);
+    fuelTank.rotation.z = Math.PI / 2;
+    fuelTank.castShadow = true;
+    kart.add(fuelTank);
+
+    const brakeDiscFL = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.10, 0.10, 0.005, 24),
+        new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.2 })
+    );
+    brakeDiscFL.position.set(-0.52, 0.18, 0.62);
+    brakeDiscFL.rotation.z = Math.PI / 2;
+    brakeDiscFL.castShadow = true;
+    kart.add(brakeDiscFL);
+
+    const brakeCalliperFL = new THREE.Mesh(
+        new THREE.BoxGeometry(0.03, 0.08, 0.10),
+        new THREE.MeshStandardMaterial({ color: 0xff3333, metalness: 0.6, roughness: 0.4 })
+    );
+    brakeCalliperFL.position.set(-0.50, 0.23, 0.62);
+    brakeCalliperFL.castShadow = true;
+    kart.add(brakeCalliperFL);
+
+    const brakeDiscFR = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.10, 0.10, 0.005, 24),
+        new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.2 })
+    );
+    brakeDiscFR.position.set(0.52, 0.18, 0.62);
+    brakeDiscFR.rotation.z = Math.PI / 2;
+    brakeDiscFR.castShadow = true;
+    kart.add(brakeDiscFR);
+
+    const brakeCalliperFR = new THREE.Mesh(
+        new THREE.BoxGeometry(0.03, 0.08, 0.10),
+        new THREE.MeshStandardMaterial({ color: 0xff3333, metalness: 0.6, roughness: 0.4 })
+    );
+    brakeCalliperFR.position.set(0.50, 0.23, 0.62);
+    brakeCalliperFR.castShadow = true;
+    kart.add(brakeCalliperFR);
+
+    const brakeDiscRL = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, 0.006, 24),
+        new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.2 })
+    );
+    brakeDiscRL.position.set(-0.68, 0.22, -0.52);
+    brakeDiscRL.rotation.z = Math.PI / 2;
+    brakeDiscRL.castShadow = true;
+    kart.add(brakeDiscRL);
+
+    const brakeCalliperRL = new THREE.Mesh(
+        new THREE.BoxGeometry(0.03, 0.10, 0.12),
+        new THREE.MeshStandardMaterial({ color: 0xff3333, metalness: 0.6, roughness: 0.4 })
+    );
+    brakeCalliperRL.position.set(-0.66, 0.28, -0.52);
+    brakeCalliperRL.castShadow = true;
+    kart.add(brakeCalliperRL);
+
+    const brakeDiscRR = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, 0.006, 24),
+        new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.2 })
+    );
+    brakeDiscRR.position.set(0.68, 0.22, -0.52);
+    brakeDiscRR.rotation.z = Math.PI / 2;
+    brakeDiscRR.castShadow = true;
+    kart.add(brakeDiscRR);
+
+    const brakeCalliperRR = new THREE.Mesh(
+        new THREE.BoxGeometry(0.03, 0.10, 0.12),
+        new THREE.MeshStandardMaterial({ color: 0xff3333, metalness: 0.6, roughness: 0.4 })
+    );
+    brakeCalliperRR.position.set(0.66, 0.28, -0.52);
+    brakeCalliperRR.castShadow = true;
+    kart.add(brakeCalliperRR);
+
+    const brakePedal = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.02, 0.10),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.7, roughness: 0.3 })
+    );
+    brakePedal.position.set(-0.06, 0.06, 0.35);
+    brakePedal.rotation.x = -0.3;
+    brakePedal.castShadow = true;
+    kart.add(brakePedal);
+
+    const throttlePedal = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.02, 0.10),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.7, roughness: 0.3 })
+    );
+    throttlePedal.position.set(0.06, 0.06, 0.35);
+    throttlePedal.rotation.x = -0.3;
+    throttlePedal.castShadow = true;
+    kart.add(throttlePedal);
+
+    const chainSprocket = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 0.02, 16),
+        new THREE.MeshStandardMaterial({ color: gray, metalness: 0.8, roughness: 0.3 })
+    );
+    chainSprocket.position.set(0.60, 0.22, -0.52);
+    chainSprocket.rotation.z = Math.PI / 2;
+    chainSprocket.castShadow = true;
+    kart.add(chainSprocket);
+
+    const chain1 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.008, 0.008, 0.25, 8),
+        new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8, roughness: 0.4 })
+    );
+    chain1.position.set(0.42, 0.26, -0.58);
+    chain1.rotation.z = 0.6;
+    chain1.castShadow = true;
+    kart.add(chain1);
+
+    const chain2 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.008, 0.008, 0.25, 8),
+        new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8, roughness: 0.4 })
+    );
+    chain2.position.set(0.42, 0.18, -0.58);
+    chain2.rotation.z = -0.6;
+    chain2.castShadow = true;
+    kart.add(chain2);
+
+    const frameDiagFrontLeftUp = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.50, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frameDiagFrontLeftUp.position.set(-0.20, 0.15, 0.50);
+    frameDiagFrontLeftUp.rotation.set(0, 0, -0.8);
+    frameDiagFrontLeftUp.castShadow = true;
+    kart.add(frameDiagFrontLeftUp);
+
+    const frameDiagFrontRightUp = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.50, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frameDiagFrontRightUp.position.set(0.20, 0.15, 0.50);
+    frameDiagFrontRightUp.rotation.set(0, 0, 0.8);
+    frameDiagFrontRightUp.castShadow = true;
+    kart.add(frameDiagFrontRightUp);
+
+    const frameDiagFrontLeftDown = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.50, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frameDiagFrontLeftDown.position.set(-0.20, 0.05, 0.50);
+    frameDiagFrontLeftDown.rotation.set(0, 0, 0.8);
+    frameDiagFrontLeftDown.castShadow = true;
+    kart.add(frameDiagFrontLeftDown);
+
+    const frameDiagFrontRightDown = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.50, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frameDiagFrontRightDown.position.set(0.20, 0.05, 0.50);
+    frameDiagFrontRightDown.rotation.set(0, 0, -0.8);
+    frameDiagFrontRightDown.castShadow = true;
+    kart.add(frameDiagFrontRightDown);
+
+    const frameCross1 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.54, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frameCross1.position.set(0, 0.05, 0.20);
+    frameCross1.rotation.z = Math.PI / 2;
+    frameCross1.castShadow = true;
+    kart.add(frameCross1);
+
+    const frameCross2 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.54, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frameCross2.position.set(0, 0.05, -0.10);
+    frameCross2.rotation.z = Math.PI / 2;
+    frameCross2.castShadow = true;
+    kart.add(frameCross2);
+
+    const frameCross3 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.36, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frameCross3.position.set(0, 0.08, -0.50);
+    frameCross3.rotation.z = Math.PI / 2;
+    frameCross3.castShadow = true;
+    kart.add(frameCross3);
+
+    const frameDiagRearLeft = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.40, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frameDiagRearLeft.position.set(-0.14, 0.14, -0.35);
+    frameDiagRearLeft.rotation.set(0.5, 0, -0.6);
+    frameDiagRearLeft.castShadow = true;
+    kart.add(frameDiagRearLeft);
+
+    const frameDiagRearRight = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.40, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frameDiagRearRight.position.set(0.14, 0.14, -0.35);
+    frameDiagRearRight.rotation.set(0.5, 0, 0.6);
+    frameDiagRearRight.castShadow = true;
+    kart.add(frameDiagRearRight);
+
+    const rearAxle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.025, 0.025, 1.36, 16),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.9, roughness: 0.2 })
+    );
+    rearAxle.position.set(0, 0.22, -0.52);
+    rearAxle.rotation.z = Math.PI / 2;
+    rearAxle.castShadow = true;
+    kart.add(rearAxle);
+
+    const frontAxleLeft = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.020, 0.020, 0.12, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.9, roughness: 0.2 })
+    );
+    frontAxleLeft.position.set(-0.52, 0.18, 0.62);
+    frontAxleLeft.rotation.z = Math.PI / 2;
+    frontAxleLeft.castShadow = true;
+    kart.add(frontAxleLeft);
+
+    const frontAxleRight = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.020, 0.020, 0.12, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.9, roughness: 0.2 })
+    );
+    frontAxleRight.position.set(0.52, 0.18, 0.62);
+    frontAxleRight.rotation.z = Math.PI / 2;
+    frontAxleRight.castShadow = true;
+    kart.add(frontAxleRight);
+
+    const steeringArm = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.008, 0.008, 0.15, 8),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.3 })
+    );
+    steeringArm.position.set(-0.08, 0.08, 0.52);
+    steeringArm.rotation.set(0, 0, 0.3);
+    steeringArm.castShadow = true;
+    kart.add(steeringArm);
+
+    const frontFrameLeft = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.25, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frontFrameLeft.position.set(-0.27, 0.05, 0.78);
+    frontFrameLeft.rotation.x = Math.PI / 2;
+    frontFrameLeft.castShadow = true;
+    kart.add(frontFrameLeft);
+
+    const frontFrameRight = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.25, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    frontFrameRight.position.set(0.27, 0.05, 0.78);
+    frontFrameRight.rotation.x = Math.PI / 2;
+    frontFrameRight.castShadow = true;
+    kart.add(frontFrameRight);
+
+    const rearFrameLeft = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.018, 0.25, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    rearFrameLeft.position.set(-0.60, 0.12, -0.70);
+    rearFrameLeft.rotation.x = Math.PI / 2;
+    rearFrameLeft.castShadow = true;
+    kart.add(rearFrameLeft);
+
+    const rearFrameRight = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.018, 0.25, 12),
+        new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
+    );
+    rearFrameRight.position.set(0.60, 0.12, -0.70);
+    rearFrameRight.rotation.x = Math.PI / 2;
+    rearFrameRight.castShadow = true;
+    kart.add(rearFrameRight);
+
     return kart;
 }
 
