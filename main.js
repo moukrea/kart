@@ -6,11 +6,14 @@ const canvas = document.getElementById('game-canvas');
 let scene, camera, renderer, controls;
 let engineMesh = null;
 let exhaustMeshes = [];
+let wheelMeshes = [];
+let kartSpeed = 0; // Speed in units/second (positive = forward, negative = backward)
 
 window.scene = null;
 window.camera = null;
 window.renderer = null;
 window.controls = null;
+window.kartSpeed = 0; // Exposed for gameplay controls
 
 function createGroundPlane() {
     const geometry = new THREE.PlaneGeometry(10000, 10000, 200, 200);
@@ -716,6 +719,10 @@ function init() {
                         engineMesh = child;
                     }
 
+                    if (name.includes('wheel') || name.includes('tire')) {
+                        wheelMeshes.push(child);
+                    }
+
                     if (child.geometry && child.geometry.type === 'CylinderGeometry') {
                         const parent = child.parent;
                         if (parent && parent.name.toLowerCase().includes('engine')) {
@@ -727,6 +734,10 @@ function init() {
 
             scene.add(kart);
             console.log('Downloaded kart model loaded successfully');
+            console.log('Engine mesh found:', engineMesh ? 'Yes' : 'No');
+            console.log('Exhaust meshes found:', exhaustMeshes.length);
+            console.log('Wheel meshes found:', wheelMeshes.length);
+            console.log('To test wheel rotation: window.kartSpeed = 5 (forward) or -5 (backward)');
         },
         function (xhr) {
             console.log('Loading model: ' + (xhr.loaded / xhr.total * 100).toFixed(0) + '%');
@@ -744,10 +755,16 @@ function init() {
     animate();
 }
 
+let lastTime = Date.now();
+
 function animate() {
     requestAnimationFrame(animate);
 
-    const time = Date.now() * 0.001;
+    const currentTime = Date.now();
+    const deltaTime = (currentTime - lastTime) * 0.001;
+    lastTime = currentTime;
+
+    const time = currentTime * 0.001;
 
     if (engineMesh) {
         const engineScale = 1.0 + Math.sin(time * 35) * 0.05;
@@ -758,6 +775,19 @@ function animate() {
         const exhaustScale = 1.0 + Math.sin(time * 35 + Math.PI * 0.6) * 0.08;
         exhaustMeshes.forEach(exhaust => {
             exhaust.scale.set(exhaustScale, exhaustScale, exhaustScale);
+        });
+    }
+
+    // Wheel rotation based on speed
+    // Typical wheel radius ~0.2 units, angular velocity = linear velocity / radius
+    if (wheelMeshes.length > 0) {
+        const wheelRadius = 0.2;
+        const angularVelocity = window.kartSpeed / wheelRadius;
+        const rotationDelta = angularVelocity * deltaTime;
+
+        wheelMeshes.forEach(wheel => {
+            // Rotate around local X axis (wheels spin forward/backward)
+            wheel.rotation.x -= rotationDelta;
         });
     }
 
