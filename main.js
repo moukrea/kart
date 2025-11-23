@@ -698,8 +698,11 @@ function init() {
             const kart = collada.scene;
 
             kart.scale.set(0.4, 0.4, 0.4);
-            kart.position.y = 0;
-            kart.rotation.y = Math.PI;
+
+            kart.rotation.x = -Math.PI / 2;
+            kart.rotation.z = Math.PI;
+
+            kart.position.y = 0.2;
 
             kart.traverse(function (child) {
                 if (child.isMesh) {
