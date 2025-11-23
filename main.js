@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 
 const canvas = document.getElementById('game-canvas');
 let scene, camera, renderer, controls;
@@ -689,10 +690,38 @@ function init() {
     const ground = createGroundPlane();
     scene.add(ground);
 
-    const kart = createKart();
-    scene.add(kart);
+    const loader = new ColladaLoader();
+    loader.load(
+        '/assets/models/kart/pipeframe64_mario.dae',
+        function (collada) {
+            const kart = collada.scene;
 
-    console.log('Kart Racing Game - Simple Clean Design');
+            kart.scale.set(0.4, 0.4, 0.4);
+            kart.position.y = 0;
+            kart.rotation.y = Math.PI;
+
+            kart.traverse(function (child) {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+
+            scene.add(kart);
+            console.log('Downloaded kart model loaded successfully');
+        },
+        function (xhr) {
+            console.log('Loading model: ' + (xhr.loaded / xhr.total * 100).toFixed(0) + '%');
+        },
+        function (error) {
+            console.error('Error loading kart model:', error);
+            console.log('Falling back to procedural kart');
+            const kart = createKart();
+            scene.add(kart);
+        }
+    );
+
+    console.log('Kart Racing Game - Loading 3D Model');
 
     animate();
 }
