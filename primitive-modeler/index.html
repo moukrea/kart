@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primitive 3D Modeler - Multi-View Renderer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #e8e8e8;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #222;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #555;
+        }
+
+        button:active {
+            background: #222;
+        }
+
+        .viewport-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 512px);
+            grid-template-rows: repeat(3, 512px);
+            gap: 8px;
+            background: #d0d0d0;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .viewport {
+            position: relative;
+            background: #f0f0f0;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .viewport canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .viewport-label {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        @media (max-width: 1600px) {
+            .viewport-grid {
+                grid-template-columns: repeat(3, 400px);
+                grid-template-rows: repeat(3, 400px);
+            }
+        }
+
+        @media (max-width: 1280px) {
+            .viewport-grid {
+                grid-template-columns: repeat(3, 320px);
+                grid-template-rows: repeat(3, 320px);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .viewport-grid {
+                grid-template-columns: repeat(3, 280px);
+                grid-template-rows: repeat(3, 280px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Primitive 3D Modeler - Multi-View Renderer</h1>
+
+        <div class="controls">
+            <button id="downloadAll">Download All Views</button>
+            <button id="downloadComposite">Download Composite</button>
+        </div>
+
+        <div class="viewport-grid">
+            <div class="viewport" id="viewport-top">
+                <div class="viewport-label">TOP</div>
+            </div>
+            <div class="viewport" id="viewport-back">
+                <div class="viewport-label">BACK</div>
+            </div>
+            <div class="viewport" id="viewport-bottom">
+                <div class="viewport-label">BOTTOM</div>
+            </div>
+            <div class="viewport" id="viewport-left">
+                <div class="viewport-label">LEFT</div>
+            </div>
+            <div class="viewport" id="viewport-perspective">
+                <div class="viewport-label">PERSPECTIVE</div>
+            </div>
+            <div class="viewport" id="viewport-right">
+                <div class="viewport-label">RIGHT</div>
+            </div>
+            <div class="viewport" id="viewport-empty1"></div>
+            <div class="viewport" id="viewport-front">
+                <div class="viewport-label">FRONT</div>
+            </div>
+            <div class="viewport" id="viewport-empty2"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js';
+        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/controls/OrbitControls.js';
+        import { createModel } from './model-generator.js';
+
+        // Configuration
+        const VIEWPORT_SIZE = 512;
+        const SCREENSHOT_SIZE = 2048;
+        const GRID_SIZE = 100;
+        const GRID_DIVISIONS = 20;
+        const FRUSTUM_SIZE = 15;
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+
+        // Lighting rig
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight1.position.set(5, 10, 7);
+        directionalLight1.castShadow = true;
+        directionalLight1.shadow.mapSize.width = 2048;
+        directionalLight1.shadow.mapSize.height = 2048;
+        scene.add(directionalLight1);
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+        directionalLight2.position.set(-5, 5, -5);
+        scene.add(directionalLight2);
+
+        const directionalLight3 = new THREE.DirectionalLight(0xffffff, 0.2);
+        directionalLight3.position.set(0, -5, 5);
+        scene.add(directionalLight3);
+
+        // Camera configurations
+        const aspect = 1;
+        const cameras = {
+            front: {
+                camera: new THREE.OrthographicCamera(
+                    -FRUSTUM_SIZE * aspect, FRUSTUM_SIZE * aspect,
+                    FRUSTUM_SIZE, -FRUSTUM_SIZE, 0.1, 1000
+                ),
+                position: [0, 0, 20],
+                up: [0, 1, 0]
+            },
+            back: {
+                camera: new THREE.OrthographicCamera(
+                    -FRUSTUM_SIZE * aspect, FRUSTUM_SIZE * aspect,
+                    FRUSTUM_SIZE, -FRUSTUM_SIZE, 0.1, 1000
+                ),
+                position: [0, 0, -20],
+                up: [0, 1, 0]
+            },
+            left: {
+                camera: new THREE.OrthographicCamera(
+                    -FRUSTUM_SIZE * aspect, FRUSTUM_SIZE * aspect,
+                    FRUSTUM_SIZE, -FRUSTUM_SIZE, 0.1, 1000
+                ),
+                position: [-20, 0, 0],
+                up: [0, 1, 0]
+            },
+            right: {
+                camera: new THREE.OrthographicCamera(
+                    -FRUSTUM_SIZE * aspect, FRUSTUM_SIZE * aspect,
+                    FRUSTUM_SIZE, -FRUSTUM_SIZE, 0.1, 1000
+                ),
+                position: [20, 0, 0],
+                up: [0, 1, 0]
+            },
+            top: {
+                camera: new THREE.OrthographicCamera(
+                    -FRUSTUM_SIZE * aspect, FRUSTUM_SIZE * aspect,
+                    FRUSTUM_SIZE, -FRUSTUM_SIZE, 0.1, 1000
+                ),
+                position: [0, 20, 0],
+                up: [0, 0, -1]
+            },
+            bottom: {
+                camera: new THREE.OrthographicCamera(
+                    -FRUSTUM_SIZE * aspect, FRUSTUM_SIZE * aspect,
+                    FRUSTUM_SIZE, -FRUSTUM_SIZE, 0.1, 1000
+                ),
+                position: [0, -20, 0],
+                up: [0, 0, 1]
+            },
+            perspective: {
+                camera: new THREE.PerspectiveCamera(50, aspect, 0.1, 1000),
+                position: [20, 15, 20],
+                up: [0, 1, 0]
+            }
+        };
+
+        // Setup cameras
+        Object.values(cameras).forEach(config => {
+            config.camera.position.set(...config.position);
+            config.camera.up.set(...config.up);
+            config.camera.lookAt(0, 0, 0);
+        });
+
+        // Create renderers for each viewport
+        const renderers = {};
+        const viewportIds = ['front', 'back', 'left', 'right', 'top', 'bottom', 'perspective'];
+
+        viewportIds.forEach(id => {
+            const container = document.getElementById(`viewport-${id}`);
+            const renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                preserveDrawingBuffer: true
+            });
+            renderer.setSize(VIEWPORT_SIZE, VIEWPORT_SIZE);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            renderers[id] = renderer;
+        });
+
+        // Add OrbitControls to perspective view only
+        const controls = new OrbitControls(cameras.perspective.camera, renderers.perspective.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.target.set(0, 0, 0);
+
+        // Helper function to create grid
+        function createGrid() {
+            const gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_DIVISIONS, 0x888888, 0xcccccc);
+            gridHelper.material.opacity = 0.3;
+            gridHelper.material.transparent = true;
+            return gridHelper;
+        }
+
+        // Helper function to create axis indicators
+        function createAxisIndicators() {
+            const axisGroup = new THREE.Group();
+            const axisLength = FRUSTUM_SIZE * 0.8;
+            const lineWidth = 2;
+
+            // X axis - Red
+            const xGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(axisLength, 0, 0)
+            ]);
+            const xMaterial = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: lineWidth });
+            const xAxis = new THREE.Line(xGeometry, xMaterial);
+            axisGroup.add(xAxis);
+
+            // Y axis - Green
+            const yGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, axisLength, 0)
+            ]);
+            const yMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: lineWidth });
+            const yAxis = new THREE.Line(yGeometry, yMaterial);
+            axisGroup.add(yAxis);
+
+            // Z axis - Blue
+            const zGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, axisLength)
+            ]);
+            const zMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: lineWidth });
+            const zAxis = new THREE.Line(zGeometry, zMaterial);
+            axisGroup.add(zAxis);
+
+            return axisGroup;
+        }
+
+        // Add grid and axes to scene
+        scene.add(createGrid());
+        scene.add(createAxisIndicators());
+
+        // Load and setup model
+        const model = createModel();
+
+        // Center model at origin
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.sub(center);
+
+        // Auto-scale model to fit views
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = (FRUSTUM_SIZE * 1.5) / maxDim;
+        model.scale.multiplyScalar(scale);
+
+        // Enable shadows on model
+        model.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+
+        scene.add(model);
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            viewportIds.forEach(id => {
+                renderers[id].render(scene, cameras[id].camera);
+            });
+        }
+        animate();
+
+        // Screenshot functionality
+        function captureView(viewName, resolution = SCREENSHOT_SIZE) {
+            const camera = cameras[viewName].camera;
+            const tempRenderer = new THREE.WebGLRenderer({
+                antialias: true,
+                preserveDrawingBuffer: true
+            });
+            tempRenderer.setSize(resolution, resolution);
+            tempRenderer.shadowMap.enabled = true;
+            tempRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            tempRenderer.render(scene, camera);
+
+            const dataURL = tempRenderer.domElement.toDataURL('image/png');
+            tempRenderer.dispose();
+            return dataURL;
+        }
+
+        function downloadImage(dataURL, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = dataURL;
+            link.click();
+        }
+
+        // Download all views as separate files
+        document.getElementById('downloadAll').addEventListener('click', () => {
+            viewportIds.forEach(viewName => {
+                const dataURL = captureView(viewName);
+                downloadImage(dataURL, `view-${viewName}.png`);
+            });
+        });
+
+        // Download composite image
+        document.getElementById('downloadComposite').addEventListener('click', () => {
+            const compositeCanvas = document.createElement('canvas');
+            const gridSize = 3;
+            const cellSize = SCREENSHOT_SIZE;
+            compositeCanvas.width = gridSize * cellSize;
+            compositeCanvas.height = gridSize * cellSize;
+            const ctx = compositeCanvas.getContext('2d');
+
+            // Fill background
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, compositeCanvas.width, compositeCanvas.height);
+
+            // Layout mapping (same as HTML grid)
+            const layout = [
+                ['top', 'back', 'bottom'],
+                ['left', 'perspective', 'right'],
+                ['empty', 'front', 'empty']
+            ];
+
+            // Capture and draw each view
+            layout.forEach((row, rowIndex) => {
+                row.forEach((viewName, colIndex) => {
+                    if (viewName !== 'empty') {
+                        const dataURL = captureView(viewName);
+                        const img = new Image();
+                        img.src = dataURL;
+
+                        // Draw image (synchronous since we're using preserveDrawingBuffer)
+                        img.onload = () => {
+                            const x = colIndex * cellSize;
+                            const y = rowIndex * cellSize;
+                            ctx.drawImage(img, x, y, cellSize, cellSize);
+
+                            // Draw label
+                            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                            ctx.fillRect(x + 20, y + 20, 120, 40);
+                            ctx.fillStyle = 'white';
+                            ctx.font = 'bold 24px Arial';
+                            ctx.fillText(viewName.toUpperCase(), x + 35, y + 48);
+
+                            // Check if all images are loaded and download
+                            if (rowIndex === layout.length - 1 && colIndex === row.length - 1) {
+                                setTimeout(() => {
+                                    const compositeDataURL = compositeCanvas.toDataURL('image/png');
+                                    downloadImage(compositeDataURL, 'composite-views.png');
+                                }, 100);
+                            }
+                        };
+                    }
+                });
+            });
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const viewportSize = Math.min(512, window.innerWidth / 3 - 20);
+            viewportIds.forEach(id => {
+                const container = document.getElementById(`viewport-${id}`);
+                if (container && renderers[id]) {
+                    renderers[id].setSize(viewportSize, viewportSize);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

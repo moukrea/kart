@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reference Overlay Comparison Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-rows: 60px 1fr 60px;
+            grid-template-columns: 280px 1fr 300px;
+            height: 100vh;
+        }
+
+        .header {
+            grid-column: 1 / 4;
+            background: #2a2a2a;
+            border-bottom: 1px solid #404040;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .view-selector {
+            display: flex;
+            gap: 8px;
+        }
+
+        .view-btn {
+            padding: 8px 16px;
+            background: #383838;
+            border: 1px solid #505050;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .view-btn:hover {
+            background: #454545;
+        }
+
+        .view-btn.active {
+            background: #0066cc;
+            border-color: #0066cc;
+        }
+
+        .view-btn.has-reference {
+            border-color: #28a745;
+        }
+
+        .left-sidebar {
+            background: #242424;
+            border-right: 1px solid #404040;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .right-sidebar {
+            background: #242424;
+            border-left: 1px solid #404040;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .canvas-area {
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: auto;
+        }
+
+        .footer {
+            grid-column: 1 / 4;
+            background: #2a2a2a;
+            border-top: 1px solid #404040;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 12px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #909090;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .upload-zone {
+            border: 2px dashed #505050;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #2a2a2a;
+        }
+
+        .upload-zone:hover {
+            border-color: #0066cc;
+            background: #303030;
+        }
+
+        .upload-zone.dragover {
+            border-color: #0066cc;
+            background: #303030;
+        }
+
+        .upload-text {
+            font-size: 13px;
+            color: #909090;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .preview-container {
+            margin-top: 12px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .preview-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            border: 1px solid #404040;
+        }
+
+        .preview-thumb {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 3px;
+        }
+
+        .preview-info {
+            flex: 1;
+            font-size: 12px;
+        }
+
+        .preview-label {
+            font-weight: 500;
+        }
+
+        .btn-remove {
+            padding: 4px 8px;
+            background: #dc3545;
+            border: none;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .btn-remove:hover {
+            background: #c82333;
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-label {
+            display: block;
+            font-size: 12px;
+            color: #b0b0b0;
+            margin-bottom: 6px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 4px;
+            background: #404040;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #0066cc;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: #0066cc;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-value {
+            font-size: 12px;
+            color: #909090;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: #383838;
+            border: 1px solid #505050;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #454545;
+        }
+
+        .btn-primary {
+            background: #0066cc;
+            border-color: #0066cc;
+        }
+
+        .btn-primary:hover {
+            background: #0052a3;
+        }
+
+        .overlay-modes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .mode-btn {
+            padding: 8px;
+            background: #383838;
+            border: 1px solid #505050;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:hover {
+            background: #454545;
+        }
+
+        .mode-btn.active {
+            background: #0066cc;
+            border-color: #0066cc;
+        }
+
+        .metric-item {
+            padding: 12px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border: 1px solid #404040;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: #909090;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .metric-good {
+            color: #28a745;
+        }
+
+        .metric-warning {
+            color: #ffc107;
+        }
+
+        .metric-poor {
+            color: #dc3545;
+        }
+
+        .comparison-canvas {
+            max-width: 100%;
+            max-height: 100%;
+            border: 1px solid #404040;
+            display: none;
+        }
+
+        .comparison-canvas.active {
+            display: block;
+        }
+
+        .canvas-placeholder {
+            text-align: center;
+            color: #606060;
+        }
+
+        .canvas-placeholder h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .canvas-placeholder p {
+            font-size: 13px;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            background: #2a2a2a;
+            border: 1px solid #505050;
+            color: #e0e0e0;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .measurement-tools {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .tool-btn {
+            flex: 1;
+            padding: 8px;
+            background: #383838;
+            border: 1px solid #505050;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .tool-btn:hover {
+            background: #454545;
+        }
+
+        .tool-btn.active {
+            background: #0066cc;
+            border-color: #0066cc;
+        }
+
+        .measurement-result {
+            font-size: 12px;
+            padding: 8px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .measurement-result.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Reference Overlay Comparison</h1>
+            <div class="view-selector">
+                <button class="view-btn active" data-view="front">Front</button>
+                <button class="view-btn" data-view="back">Back</button>
+                <button class="view-btn" data-view="left">Left</button>
+                <button class="view-btn" data-view="right">Right</button>
+                <button class="view-btn" data-view="top">Top</button>
+                <button class="view-btn" data-view="bottom">Bottom</button>
+                <button class="view-btn" data-view="perspective">Perspective</button>
+            </div>
+        </div>
+
+        <div class="left-sidebar">
+            <div class="section">
+                <div class="section-title">Reference Images</div>
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-text">Drop images here or click to browse</div>
+                    <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
+                </div>
+                <div class="preview-container" id="previewContainer"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Rendered Views</div>
+                <div class="upload-zone" id="renderUploadZone">
+                    <div class="upload-text">Upload rendered views</div>
+                    <input type="file" id="renderFileInput" class="file-input" accept="image/*" multiple>
+                </div>
+                <div class="preview-container" id="renderPreviewContainer"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Alignment</div>
+                <div class="control-group">
+                    <label class="control-label">Position X</label>
+                    <div class="slider-container">
+                        <input type="range" id="posX" min="-500" max="500" value="0">
+                        <span class="slider-value" id="posXValue">0</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Position Y</label>
+                    <div class="slider-container">
+                        <input type="range" id="posY" min="-500" max="500" value="0">
+                        <span class="slider-value" id="posYValue">0</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Scale</label>
+                    <div class="slider-container">
+                        <input type="range" id="scale" min="10" max="200" value="100">
+                        <span class="slider-value" id="scaleValue">100%</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Rotation</label>
+                    <div class="slider-container">
+                        <input type="range" id="rotation" min="-180" max="180" value="0">
+                        <span class="slider-value" id="rotationValue">0°</span>
+                    </div>
+                </div>
+                <button class="btn" id="resetAlignment">Reset Alignment</button>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <div class="canvas-placeholder" id="canvasPlaceholder">
+                <h3>No Images Loaded</h3>
+                <p>Upload reference and rendered images to begin comparison</p>
+            </div>
+            <canvas id="comparisonCanvas" class="comparison-canvas"></canvas>
+        </div>
+
+        <div class="right-sidebar">
+            <div class="section">
+                <div class="section-title">Overlay Mode</div>
+                <div class="overlay-modes">
+                    <button class="mode-btn active" data-mode="sideBySide">Side by Side</button>
+                    <button class="mode-btn" data-mode="blend">Alpha Blend</button>
+                    <button class="mode-btn" data-mode="difference">Difference</button>
+                    <button class="mode-btn" data-mode="silhouette">Silhouette</button>
+                </div>
+                <div class="control-group" id="opacityControl" style="display: none;">
+                    <label class="control-label">Blend Opacity</label>
+                    <div class="slider-container">
+                        <input type="range" id="opacity" min="0" max="100" value="50">
+                        <span class="slider-value" id="opacityValue">50%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Measurement Tools</div>
+                <div class="measurement-tools">
+                    <button class="tool-btn" data-tool="distance">Distance</button>
+                    <button class="tool-btn" data-tool="angle">Angle</button>
+                    <button class="tool-btn" data-tool="ratio">Ratio</button>
+                </div>
+                <div class="measurement-result" id="measurementResult"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Comparison Metrics</div>
+                <div class="metric-item">
+                    <div class="metric-label">Silhouette IoU</div>
+                    <div class="metric-value" id="metricIoU">--</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Pixel RMSE</div>
+                    <div class="metric-value" id="metricRMSE">--</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Edge Alignment</div>
+                    <div class="metric-value" id="metricEdge">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <button class="btn btn-primary" id="saveImage">Save Comparison Image</button>
+            <button class="btn" id="exportMetrics">Export Metrics Report</button>
+            <button class="btn" id="saveSettings">Save Settings</button>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        const state = {
+            currentView: 'front',
+            referenceImages: {},
+            renderImages: {},
+            alignment: {
+                posX: 0,
+                posY: 0,
+                scale: 1.0,
+                rotation: 0
+            },
+            overlayMode: 'sideBySide',
+            opacity: 0.5,
+            measurementTool: null,
+            measurementPoints: [],
+            metrics: {}
+        };
+
+        // Canvas context
+        const canvas = document.getElementById('comparisonCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('referenceOverlaySettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                state.alignment = settings.alignment || state.alignment;
+                updateAlignmentUI();
+            }
+        }
+
+        // Save settings to localStorage
+        function saveSettings() {
+            const settings = {
+                alignment: state.alignment,
+                overlayMode: state.overlayMode,
+                opacity: state.opacity
+            };
+            localStorage.setItem('referenceOverlaySettings', JSON.stringify(settings));
+            alert('Settings saved successfully');
+        }
+
+        // Reference image upload
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files, 'reference');
+        });
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files, 'reference');
+        });
+
+        // Render image upload
+        const renderUploadZone = document.getElementById('renderUploadZone');
+        const renderFileInput = document.getElementById('renderFileInput');
+
+        renderUploadZone.addEventListener('click', () => renderFileInput.click());
+        renderUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            renderUploadZone.classList.add('dragover');
+        });
+        renderUploadZone.addEventListener('dragleave', () => {
+            renderUploadZone.classList.remove('dragover');
+        });
+        renderUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            renderUploadZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files, 'render');
+        });
+        renderFileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files, 'render');
+        });
+
+        // Handle file uploads
+        function handleFiles(files, type) {
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const id = Date.now() + Math.random();
+                        const imageData = {
+                            id,
+                            image: img,
+                            file: file,
+                            view: state.currentView
+                        };
+
+                        if (type === 'reference') {
+                            state.referenceImages[id] = imageData;
+                            updatePreview('reference');
+                        } else {
+                            state.renderImages[id] = imageData;
+                            updatePreview('render');
+                        }
+
+                        updateCanvas();
+                        updateViewButtons();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Update preview thumbnails
+        function updatePreview(type) {
+            const container = type === 'reference' ?
+                document.getElementById('previewContainer') :
+                document.getElementById('renderPreviewContainer');
+
+            const images = type === 'reference' ? state.referenceImages : state.renderImages;
+
+            container.innerHTML = '';
+            Object.values(images).forEach(data => {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+
+                const thumb = document.createElement('img');
+                thumb.className = 'preview-thumb';
+                thumb.src = data.image.src;
+
+                const info = document.createElement('div');
+                info.className = 'preview-info';
+
+                const label = document.createElement('div');
+                label.className = 'preview-label';
+                label.textContent = data.view.charAt(0).toUpperCase() + data.view.slice(1);
+
+                const select = document.createElement('select');
+                ['front', 'back', 'left', 'right', 'top', 'bottom', 'perspective'].forEach(view => {
+                    const option = document.createElement('option');
+                    option.value = view;
+                    option.textContent = view.charAt(0).toUpperCase() + view.slice(1);
+                    option.selected = view === data.view;
+                    select.appendChild(option);
+                });
+                select.addEventListener('change', (e) => {
+                    data.view = e.target.value;
+                    updateViewButtons();
+                    updateCanvas();
+                });
+
+                info.appendChild(label);
+                info.appendChild(select);
+
+                const btnRemove = document.createElement('button');
+                btnRemove.className = 'btn-remove';
+                btnRemove.textContent = 'Remove';
+                btnRemove.addEventListener('click', () => {
+                    delete images[data.id];
+                    updatePreview(type);
+                    updateViewButtons();
+                    updateCanvas();
+                });
+
+                item.appendChild(thumb);
+                item.appendChild(info);
+                item.appendChild(btnRemove);
+                container.appendChild(item);
+            });
+        }
+
+        // Update view buttons to show which have references
+        function updateViewButtons() {
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                const view = btn.dataset.view;
+                const hasReference = Object.values(state.referenceImages).some(img => img.view === view);
+                btn.classList.toggle('has-reference', hasReference);
+            });
+        }
+
+        // View selector
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.currentView = btn.dataset.view;
+                updateCanvas();
+                calculateMetrics();
+            });
+        });
+
+        // Overlay mode selector
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.overlayMode = btn.dataset.mode;
+
+                const opacityControl = document.getElementById('opacityControl');
+                opacityControl.style.display = state.overlayMode === 'blend' ? 'block' : 'none';
+
+                updateCanvas();
+            });
+        });
+
+        // Alignment controls
+        const posXSlider = document.getElementById('posX');
+        const posYSlider = document.getElementById('posY');
+        const scaleSlider = document.getElementById('scale');
+        const rotationSlider = document.getElementById('rotation');
+        const opacitySlider = document.getElementById('opacity');
+
+        posXSlider.addEventListener('input', (e) => {
+            state.alignment.posX = parseInt(e.target.value);
+            document.getElementById('posXValue').textContent = e.target.value;
+            updateCanvas();
+        });
+
+        posYSlider.addEventListener('input', (e) => {
+            state.alignment.posY = parseInt(e.target.value);
+            document.getElementById('posYValue').textContent = e.target.value;
+            updateCanvas();
+        });
+
+        scaleSlider.addEventListener('input', (e) => {
+            state.alignment.scale = parseInt(e.target.value) / 100;
+            document.getElementById('scaleValue').textContent = e.target.value + '%';
+            updateCanvas();
+        });
+
+        rotationSlider.addEventListener('input', (e) => {
+            state.alignment.rotation = parseInt(e.target.value);
+            document.getElementById('rotationValue').textContent = e.target.value + '°';
+            updateCanvas();
+        });
+
+        opacitySlider.addEventListener('input', (e) => {
+            state.opacity = parseInt(e.target.value) / 100;
+            document.getElementById('opacityValue').textContent = e.target.value + '%';
+            updateCanvas();
+        });
+
+        document.getElementById('resetAlignment').addEventListener('click', () => {
+            state.alignment = { posX: 0, posY: 0, scale: 1.0, rotation: 0 };
+            updateAlignmentUI();
+            updateCanvas();
+        });
+
+        function updateAlignmentUI() {
+            posXSlider.value = state.alignment.posX;
+            posYSlider.value = state.alignment.posY;
+            scaleSlider.value = state.alignment.scale * 100;
+            rotationSlider.value = state.alignment.rotation;
+
+            document.getElementById('posXValue').textContent = state.alignment.posX;
+            document.getElementById('posYValue').textContent = state.alignment.posY;
+            document.getElementById('scaleValue').textContent = (state.alignment.scale * 100) + '%';
+            document.getElementById('rotationValue').textContent = state.alignment.rotation + '°';
+        }
+
+        // Measurement tools
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+
+                if (state.measurementTool === btn.dataset.tool) {
+                    state.measurementTool = null;
+                    state.measurementPoints = [];
+                } else {
+                    btn.classList.add('active');
+                    state.measurementTool = btn.dataset.tool;
+                    state.measurementPoints = [];
+                }
+
+                document.getElementById('measurementResult').classList.remove('active');
+            });
+        });
+
+        // Canvas click for measurements
+        canvas.addEventListener('click', (e) => {
+            if (!state.measurementTool) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            state.measurementPoints.push({ x, y });
+
+            const maxPoints = state.measurementTool === 'angle' ? 3 : 2;
+            if (state.measurementPoints.length >= maxPoints) {
+                calculateMeasurement();
+                state.measurementPoints = [];
+            }
+
+            updateCanvas();
+        });
+
+        function calculateMeasurement() {
+            const points = state.measurementPoints;
+            const resultDiv = document.getElementById('measurementResult');
+            resultDiv.classList.add('active');
+
+            if (state.measurementTool === 'distance') {
+                const dist = Math.sqrt(
+                    Math.pow(points[1].x - points[0].x, 2) +
+                    Math.pow(points[1].y - points[0].y, 2)
+                );
+                resultDiv.textContent = `Distance: ${dist.toFixed(2)} pixels`;
+            } else if (state.measurementTool === 'angle') {
+                const angle1 = Math.atan2(points[0].y - points[1].y, points[0].x - points[1].x);
+                const angle2 = Math.atan2(points[2].y - points[1].y, points[2].x - points[1].x);
+                let angle = Math.abs((angle2 - angle1) * 180 / Math.PI);
+                if (angle > 180) angle = 360 - angle;
+                resultDiv.textContent = `Angle: ${angle.toFixed(2)}°`;
+            } else if (state.measurementTool === 'ratio') {
+                resultDiv.textContent = 'Click two more points for second distance';
+                if (points.length === 4) {
+                    const dist1 = Math.sqrt(
+                        Math.pow(points[1].x - points[0].x, 2) +
+                        Math.pow(points[1].y - points[0].y, 2)
+                    );
+                    const dist2 = Math.sqrt(
+                        Math.pow(points[3].x - points[2].x, 2) +
+                        Math.pow(points[3].y - points[2].y, 2)
+                    );
+                    const ratio = dist1 / dist2;
+                    resultDiv.textContent = `Ratio: ${ratio.toFixed(3)} (${dist1.toFixed(2)} / ${dist2.toFixed(2)})`;
+                }
+            }
+        }
+
+        // Main canvas rendering
+        function updateCanvas() {
+            const refImg = Object.values(state.referenceImages).find(img => img.view === state.currentView);
+            const renderImg = Object.values(state.renderImages).find(img => img.view === state.currentView);
+
+            if (!refImg && !renderImg) {
+                canvas.classList.remove('active');
+                document.getElementById('canvasPlaceholder').style.display = 'block';
+                return;
+            }
+
+            canvas.classList.add('active');
+            document.getElementById('canvasPlaceholder').style.display = 'none';
+
+            const img1 = refImg?.image;
+            const img2 = renderImg?.image;
+
+            let width = 800;
+            let height = 600;
+
+            if (img1) {
+                width = Math.max(width, img1.width);
+                height = Math.max(height, img1.height);
+            }
+            if (img2) {
+                width = Math.max(width, img2.width);
+                height = Math.max(height, img2.height);
+            }
+
+            if (state.overlayMode === 'sideBySide') {
+                canvas.width = width * 2 + 20;
+                canvas.height = height;
+            } else {
+                canvas.width = width;
+                canvas.height = height;
+            }
+
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (state.overlayMode === 'sideBySide') {
+                drawSideBySide(img1, img2, width, height);
+            } else if (state.overlayMode === 'blend') {
+                drawBlend(img1, img2, width, height);
+            } else if (state.overlayMode === 'difference') {
+                drawDifference(img1, img2, width, height);
+            } else if (state.overlayMode === 'silhouette') {
+                drawSilhouette(img1, img2, width, height);
+            }
+
+            drawMeasurementPoints();
+        }
+
+        function drawSideBySide(img1, img2, width, height) {
+            if (img1) {
+                ctx.save();
+                ctx.translate(width / 2, height / 2);
+                ctx.rotate(state.alignment.rotation * Math.PI / 180);
+                ctx.scale(state.alignment.scale, state.alignment.scale);
+                ctx.translate(state.alignment.posX, state.alignment.posY);
+                ctx.drawImage(img1, -img1.width / 2, -img1.height / 2);
+                ctx.restore();
+            }
+
+            if (img2) {
+                ctx.drawImage(img2, width + 20 + (width - img2.width) / 2, (height - img2.height) / 2);
+            }
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(width + 10, 0);
+            ctx.lineTo(width + 10, height);
+            ctx.stroke();
+        }
+
+        function drawBlend(img1, img2, width, height) {
+            if (img2) {
+                ctx.drawImage(img2, (width - img2.width) / 2, (height - img2.height) / 2);
+            }
+
+            if (img1) {
+                ctx.save();
+                ctx.globalAlpha = state.opacity;
+                ctx.translate(width / 2, height / 2);
+                ctx.rotate(state.alignment.rotation * Math.PI / 180);
+                ctx.scale(state.alignment.scale, state.alignment.scale);
+                ctx.translate(state.alignment.posX, state.alignment.posY);
+                ctx.drawImage(img1, -img1.width / 2, -img1.height / 2);
+                ctx.restore();
+            }
+        }
+
+        function drawDifference(img1, img2, width, height) {
+            if (!img1 || !img2) {
+                if (img1) ctx.drawImage(img1, (width - img1.width) / 2, (height - img1.height) / 2);
+                if (img2) ctx.drawImage(img2, (width - img2.width) / 2, (height - img2.height) / 2);
+                return;
+            }
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            tempCtx.drawImage(img2, (width - img2.width) / 2, (height - img2.height) / 2);
+            const data2 = tempCtx.getImageData(0, 0, width, height);
+
+            tempCtx.clearRect(0, 0, width, height);
+            tempCtx.save();
+            tempCtx.translate(width / 2, height / 2);
+            tempCtx.rotate(state.alignment.rotation * Math.PI / 180);
+            tempCtx.scale(state.alignment.scale, state.alignment.scale);
+            tempCtx.translate(state.alignment.posX, state.alignment.posY);
+            tempCtx.drawImage(img1, -img1.width / 2, -img1.height / 2);
+            tempCtx.restore();
+            const data1 = tempCtx.getImageData(0, 0, width, height);
+
+            for (let i = 0; i < data1.data.length; i += 4) {
+                const diff = Math.abs(data1.data[i] - data2.data[i]) +
+                           Math.abs(data1.data[i + 1] - data2.data[i + 1]) +
+                           Math.abs(data1.data[i + 2] - data2.data[i + 2]);
+
+                if (diff > 30) {
+                    data1.data[i] = 255;
+                    data1.data[i + 1] = 0;
+                    data1.data[i + 2] = 0;
+                } else {
+                    const avg = (data1.data[i] + data2.data[i]) / 2;
+                    data1.data[i] = data1.data[i + 1] = data1.data[i + 2] = avg;
+                }
+            }
+
+            ctx.putImageData(data1, 0, 0);
+        }
+
+        function drawSilhouette(img1, img2, width, height) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            if (img2) {
+                tempCtx.drawImage(img2, (width - img2.width) / 2, (height - img2.height) / 2);
+                const data = tempCtx.getImageData(0, 0, width, height);
+                detectEdges(data);
+                tempCtx.putImageData(data, 0, 0);
+            }
+
+            ctx.drawImage(tempCanvas, 0, 0);
+
+            if (img1) {
+                tempCtx.clearRect(0, 0, width, height);
+                tempCtx.save();
+                tempCtx.translate(width / 2, height / 2);
+                tempCtx.rotate(state.alignment.rotation * Math.PI / 180);
+                tempCtx.scale(state.alignment.scale, state.alignment.scale);
+                tempCtx.translate(state.alignment.posX, state.alignment.posY);
+                tempCtx.drawImage(img1, -img1.width / 2, -img1.height / 2);
+                tempCtx.restore();
+
+                const data = tempCtx.getImageData(0, 0, width, height);
+                detectEdges(data);
+                tempCtx.putImageData(data, 0, 0);
+
+                ctx.globalAlpha = 0.7;
+                ctx.drawImage(tempCanvas, 0, 0);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function detectEdges(imageData) {
+            const data = imageData.data;
+            const w = imageData.width;
+            const h = imageData.height;
+            const output = new Uint8ClampedArray(data);
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const idx = (y * w + x) * 4;
+
+                    const gx = (
+                        -1 * data[((y - 1) * w + (x - 1)) * 4] +
+                        1 * data[((y - 1) * w + (x + 1)) * 4] +
+                        -2 * data[(y * w + (x - 1)) * 4] +
+                        2 * data[(y * w + (x + 1)) * 4] +
+                        -1 * data[((y + 1) * w + (x - 1)) * 4] +
+                        1 * data[((y + 1) * w + (x + 1)) * 4]
+                    );
+
+                    const gy = (
+                        -1 * data[((y - 1) * w + (x - 1)) * 4] +
+                        -2 * data[((y - 1) * w + x) * 4] +
+                        -1 * data[((y - 1) * w + (x + 1)) * 4] +
+                        1 * data[((y + 1) * w + (x - 1)) * 4] +
+                        2 * data[((y + 1) * w + x) * 4] +
+                        1 * data[((y + 1) * w + (x + 1)) * 4]
+                    );
+
+                    const magnitude = Math.sqrt(gx * gx + gy * gy);
+                    output[idx] = output[idx + 1] = output[idx + 2] = magnitude > 50 ? 255 : 0;
+                }
+            }
+
+            for (let i = 0; i < data.length; i++) {
+                data[i] = output[i];
+            }
+        }
+
+        function drawMeasurementPoints() {
+            if (state.measurementPoints.length === 0) return;
+
+            ctx.strokeStyle = '#00ff00';
+            ctx.fillStyle = '#00ff00';
+            ctx.lineWidth = 2;
+
+            state.measurementPoints.forEach((point, index) => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+
+                if (index > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(state.measurementPoints[index - 1].x, state.measurementPoints[index - 1].y);
+                    ctx.lineTo(point.x, point.y);
+                    ctx.stroke();
+                }
+            });
+        }
+
+        // Metrics calculation
+        function calculateMetrics() {
+            const refImg = Object.values(state.referenceImages).find(img => img.view === state.currentView);
+            const renderImg = Object.values(state.renderImages).find(img => img.view === state.currentView);
+
+            if (!refImg || !renderImg) {
+                document.getElementById('metricIoU').textContent = '--';
+                document.getElementById('metricRMSE').textContent = '--';
+                document.getElementById('metricEdge').textContent = '--';
+                return;
+            }
+
+            const metrics = computeMetrics(refImg.image, renderImg.image);
+            state.metrics[state.currentView] = metrics;
+
+            const iouElement = document.getElementById('metricIoU');
+            iouElement.textContent = (metrics.iou * 100).toFixed(1) + '%';
+            iouElement.className = 'metric-value ' + getMetricClass(metrics.iou, 0.8, 0.6);
+
+            const rmseElement = document.getElementById('metricRMSE');
+            rmseElement.textContent = metrics.rmse.toFixed(2);
+            rmseElement.className = 'metric-value ' + getMetricClass(1 - metrics.rmse / 255, 0.8, 0.6);
+
+            const edgeElement = document.getElementById('metricEdge');
+            edgeElement.textContent = (metrics.edgeScore * 100).toFixed(1) + '%';
+            edgeElement.className = 'metric-value ' + getMetricClass(metrics.edgeScore, 0.8, 0.6);
+        }
+
+        function getMetricClass(value, goodThreshold, warningThreshold) {
+            if (value >= goodThreshold) return 'metric-good';
+            if (value >= warningThreshold) return 'metric-warning';
+            return 'metric-poor';
+        }
+
+        function computeMetrics(img1, img2) {
+            const size = Math.max(img1.width, img1.height, img2.width, img2.height);
+
+            const canvas1 = document.createElement('canvas');
+            const canvas2 = document.createElement('canvas');
+            canvas1.width = canvas2.width = size;
+            canvas1.height = canvas2.height = size;
+
+            const ctx1 = canvas1.getContext('2d');
+            const ctx2 = canvas2.getContext('2d');
+
+            ctx1.drawImage(img1, (size - img1.width) / 2, (size - img1.height) / 2);
+            ctx2.drawImage(img2, (size - img2.width) / 2, (size - img2.height) / 2);
+
+            const data1 = ctx1.getImageData(0, 0, size, size);
+            const data2 = ctx2.getImageData(0, 0, size, size);
+
+            let intersection = 0;
+            let union = 0;
+            let sumSquaredError = 0;
+            let totalPixels = 0;
+
+            for (let i = 0; i < data1.data.length; i += 4) {
+                const alpha1 = data1.data[i + 3] > 128 ? 1 : 0;
+                const alpha2 = data2.data[i + 3] > 128 ? 1 : 0;
+
+                if (alpha1 && alpha2) intersection++;
+                if (alpha1 || alpha2) union++;
+
+                const r1 = data1.data[i];
+                const g1 = data1.data[i + 1];
+                const b1 = data1.data[i + 2];
+                const r2 = data2.data[i];
+                const g2 = data2.data[i + 1];
+                const b2 = data2.data[i + 2];
+
+                const error = Math.pow(r1 - r2, 2) + Math.pow(g1 - g2, 2) + Math.pow(b1 - b2, 2);
+                sumSquaredError += error;
+                totalPixels++;
+            }
+
+            const iou = union > 0 ? intersection / union : 0;
+            const rmse = Math.sqrt(sumSquaredError / (totalPixels * 3));
+
+            detectEdges(data1);
+            detectEdges(data2);
+
+            let edgeMatch = 0;
+            let edgeTotal = 0;
+
+            for (let i = 0; i < data1.data.length; i += 4) {
+                const edge1 = data1.data[i] > 128 ? 1 : 0;
+                const edge2 = data2.data[i] > 128 ? 1 : 0;
+
+                if (edge1 || edge2) {
+                    edgeTotal++;
+                    if (edge1 && edge2) edgeMatch++;
+                }
+            }
+
+            const edgeScore = edgeTotal > 0 ? edgeMatch / edgeTotal : 0;
+
+            return { iou, rmse, edgeScore };
+        }
+
+        // Export functions
+        document.getElementById('saveImage').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = `comparison-${state.currentView}-${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+
+        document.getElementById('exportMetrics').addEventListener('click', () => {
+            const report = {
+                timestamp: new Date().toISOString(),
+                metrics: state.metrics,
+                summary: generateMetricsSummary()
+            };
+
+            const jsonBlob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const jsonUrl = URL.createObjectURL(jsonBlob);
+            const jsonLink = document.createElement('a');
+            jsonLink.download = `metrics-report-${Date.now()}.json`;
+            jsonLink.href = jsonUrl;
+            jsonLink.click();
+
+            const textReport = generateTextReport(report);
+            const textBlob = new Blob([textReport], { type: 'text/plain' });
+            const textUrl = URL.createObjectURL(textBlob);
+            const textLink = document.createElement('a');
+            textLink.download = `metrics-report-${Date.now()}.txt`;
+            textLink.href = textUrl;
+            textLink.click();
+        });
+
+        document.getElementById('saveSettings').addEventListener('click', saveSettings);
+
+        function generateMetricsSummary() {
+            const summary = {};
+            Object.keys(state.metrics).forEach(view => {
+                const m = state.metrics[view];
+                summary[view] = {
+                    iou: (m.iou * 100).toFixed(1) + '%',
+                    rmse: m.rmse.toFixed(2),
+                    edgeScore: (m.edgeScore * 100).toFixed(1) + '%'
+                };
+            });
+            return summary;
+        }
+
+        function generateTextReport(report) {
+            let text = 'REFERENCE OVERLAY COMPARISON REPORT\n';
+            text += '=' .repeat(50) + '\n\n';
+            text += 'Generated: ' + report.timestamp + '\n\n';
+
+            Object.keys(report.metrics).forEach(view => {
+                const m = report.metrics[view];
+                text += `${view.toUpperCase()} VIEW:\n`;
+                text += `  Silhouette IoU: ${(m.iou * 100).toFixed(1)}%\n`;
+                text += `  Pixel RMSE: ${m.rmse.toFixed(2)}\n`;
+                text += `  Edge Alignment: ${(m.edgeScore * 100).toFixed(1)}%\n\n`;
+            });
+
+            return text;
+        }
+
+        // Initialize
+        loadSettings();
+    </script>
+</body>
+</html>
