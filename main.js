@@ -836,44 +836,55 @@ function init() {
                 }
             });
 
-            // Clone engine mesh for left/right split while preserving all material groups
+            // Split engine: Engine Block stays whole, other 3 groups split left/right
             if (engineMesh) {
-                // Clone for left side - clips everything with x > 0
+                const materials = Array.isArray(engineMesh.material) ? engineMesh.material : [engineMesh.material];
+
+                // Original mesh: show only Engine Block (grey_lght), hide others
+                materials.forEach(mat => {
+                    const matName = mat.name ? mat.name.toLowerCase() : '';
+                    if (matName === 'grey_lght') {
+                        mat.visible = true;  // Engine Block stays visible
+                    } else {
+                        mat.visible = false; // Hide other groups on original mesh
+                    }
+                });
+
+                // Clone for left side: show only the 3 splittable groups with x < 0
                 exhaustLeftMesh = engineMesh.clone();
-                exhaustLeftMesh.material = Array.isArray(engineMesh.material)
-                    ? engineMesh.material.map(m => m.clone())
-                    : engineMesh.material.clone();
+                exhaustLeftMesh.material = materials.map(m => m.clone());
 
                 const leftClipPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
-                const leftMaterials = Array.isArray(exhaustLeftMesh.material)
-                    ? exhaustLeftMesh.material
-                    : [exhaustLeftMesh.material];
-                leftMaterials.forEach(mat => {
-                    mat.clippingPlanes = [leftClipPlane];
-                    mat.clipShadows = true;
+                exhaustLeftMesh.material.forEach(mat => {
+                    const matName = mat.name ? mat.name.toLowerCase() : '';
+                    if (matName === 'grey_lght') {
+                        mat.visible = false; // Hide Engine Block on left mesh
+                    } else {
+                        mat.visible = true;  // Show the 3 splittable groups
+                        mat.clippingPlanes = [leftClipPlane];
+                        mat.clipShadows = true;
+                    }
                 });
                 kart.add(exhaustLeftMesh);
 
-                // Clone for right side - clips everything with x < 0
+                // Clone for right side: show only the 3 splittable groups with x > 0
                 exhaustRightMesh = engineMesh.clone();
-                exhaustRightMesh.material = Array.isArray(engineMesh.material)
-                    ? engineMesh.material.map(m => m.clone())
-                    : engineMesh.material.clone();
+                exhaustRightMesh.material = materials.map(m => m.clone());
 
                 const rightClipPlane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);
-                const rightMaterials = Array.isArray(exhaustRightMesh.material)
-                    ? exhaustRightMesh.material
-                    : [exhaustRightMesh.material];
-                rightMaterials.forEach(mat => {
-                    mat.clippingPlanes = [rightClipPlane];
-                    mat.clipShadows = true;
+                exhaustRightMesh.material.forEach(mat => {
+                    const matName = mat.name ? mat.name.toLowerCase() : '';
+                    if (matName === 'grey_lght') {
+                        mat.visible = false; // Hide Engine Block on right mesh
+                    } else {
+                        mat.visible = true;  // Show the 3 splittable groups
+                        mat.clippingPlanes = [rightClipPlane];
+                        mat.clipShadows = true;
+                    }
                 });
                 kart.add(exhaustRightMesh);
 
-                // Hide original engine mesh
-                engineMesh.visible = false;
-
-                console.log('Engine split into left/right with clipping planes (preserving all material groups)');
+                console.log('Engine Block stays whole, 3 groups split left/right');
             }
 
             scene.add(kart);
@@ -912,21 +923,17 @@ function animate() {
 
     const time = currentTime * 0.001;
 
-    // Engine core vibration: sin(time * 32) * 0.05
-    if (engineMesh && engineMesh.visible) {
-        const engineVibration = Math.sin(time * 32) * 0.05;
-        const engineScale = 1.0 + engineVibration;
-        engineMesh.scale.set(engineScale, engineScale, engineScale);
-    }
+    // Engine Block stays static (no animation)
+    // Only the split exhaust groups animate
 
-    // Exhaust Left animation with phase delay
+    // Exhaust Left animation (3 groups: gunmetal_light, gunmetal_dark, grey_dark)
     if (exhaustLeftMesh) {
         const exhaustLeftValue = Math.sin(time * 32 - 0.4) * 0.06;
         const exhaustLeftScale = 1.0 + exhaustLeftValue;
         exhaustLeftMesh.scale.set(exhaustLeftScale, exhaustLeftScale, exhaustLeftScale);
     }
 
-    // Exhaust Right animation with greater phase delay
+    // Exhaust Right animation with phase offset
     if (exhaustRightMesh) {
         const exhaustRightValue = Math.sin(time * 32 - 0.8) * 0.07;
         const exhaustRightScale = 1.0 + exhaustRightValue;
