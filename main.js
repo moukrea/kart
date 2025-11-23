@@ -93,100 +93,151 @@ function createKart() {
     kart.add(rearRightWheel);
 
     const floorPan = new THREE.Mesh(
-        new THREE.BoxGeometry(0.55, 0.015, 1.20),
-        new THREE.MeshStandardMaterial({ color: white, metalness: 0.3, roughness: 0.6 })
+        new THREE.BoxGeometry(0.75, 0.01, 1.35),
+        new THREE.MeshStandardMaterial({ color: white, metalness: 0.2, roughness: 0.7 })
     );
-    floorPan.position.set(0, 0.04, 0);
+    floorPan.position.set(0, 0.03, -0.05);
     floorPan.castShadow = true;
     kart.add(floorPan);
 
-    const seatBase = new THREE.Mesh(
-        new THREE.BoxGeometry(0.36, 0.04, 0.50),
-        new THREE.MeshStandardMaterial({ color: white, roughness: 0.7 })
+    const noseBase = new THREE.Mesh(
+        new THREE.BoxGeometry(0.95, 0.06, 0.30),
+        new THREE.MeshStandardMaterial({ color: white, metalness: 0.2, roughness: 0.7 })
     );
-    seatBase.position.set(0, 0.08, -0.08);
+    noseBase.position.set(0, 0.06, 0.70);
+    noseBase.castShadow = true;
+    kart.add(noseBase);
+
+    const noseTaper1 = new THREE.Mesh(
+        new THREE.BoxGeometry(0.85, 0.05, 0.15),
+        new THREE.MeshStandardMaterial({ color: white, metalness: 0.2, roughness: 0.7 })
+    );
+    noseTaper1.position.set(0, 0.07, 0.90);
+    noseTaper1.castShadow = true;
+    kart.add(noseTaper1);
+
+    const noseTaper2 = new THREE.Mesh(
+        new THREE.BoxGeometry(0.70, 0.04, 0.12),
+        new THREE.MeshStandardMaterial({ color: white, metalness: 0.2, roughness: 0.7 })
+    );
+    noseTaper2.position.set(0, 0.06, 1.00);
+    noseTaper2.castShadow = true;
+    kart.add(noseTaper2);
+
+    const nosePoint = new THREE.Mesh(
+        new THREE.BoxGeometry(0.50, 0.03, 0.08),
+        new THREE.MeshStandardMaterial({ color: white, metalness: 0.2, roughness: 0.7 })
+    );
+    nosePoint.position.set(0, 0.05, 1.08);
+    nosePoint.castShadow = true;
+    kart.add(nosePoint);
+
+    const noseTopPanel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.70, 0.02, 0.35),
+        new THREE.MeshStandardMaterial({ color: blue, metalness: 0.3, roughness: 0.6 })
+    );
+    noseTopPanel.position.set(0, 0.10, 0.75);
+    noseTopPanel.rotation.x = -0.1;
+    noseTopPanel.castShadow = true;
+    kart.add(noseTopPanel);
+
+    const sidePodLeftMain = new THREE.Mesh(
+        new THREE.BoxGeometry(0.15, 0.12, 0.90),
+        new THREE.MeshStandardMaterial({ color: white, metalness: 0.2, roughness: 0.7 })
+    );
+    sidePodLeftMain.position.set(-0.38, 0.08, 0.10);
+    sidePodLeftMain.castShadow = true;
+    kart.add(sidePodLeftMain);
+
+    const sidePodRightMain = new THREE.Mesh(
+        new THREE.BoxGeometry(0.15, 0.12, 0.90),
+        new THREE.MeshStandardMaterial({ color: white, metalness: 0.2, roughness: 0.7 })
+    );
+    sidePodRightMain.position.set(0.38, 0.08, 0.10);
+    sidePodRightMain.castShadow = true;
+    kart.add(sidePodRightMain);
+
+    const sidePodLeftTop = new THREE.Mesh(
+        new THREE.BoxGeometry(0.13, 0.03, 0.85),
+        new THREE.MeshStandardMaterial({ color: blue, metalness: 0.3, roughness: 0.6 })
+    );
+    sidePodLeftTop.position.set(-0.38, 0.15, 0.10);
+    sidePodLeftTop.rotation.x = -0.05;
+    sidePodLeftTop.castShadow = true;
+    kart.add(sidePodLeftTop);
+
+    const sidePodRightTop = new THREE.Mesh(
+        new THREE.BoxGeometry(0.13, 0.03, 0.85),
+        new THREE.MeshStandardMaterial({ color: blue, metalness: 0.3, roughness: 0.6 })
+    );
+    sidePodRightTop.position.set(0.38, 0.15, 0.10);
+    sidePodRightTop.rotation.x = -0.05;
+    sidePodRightTop.castShadow = true;
+    kart.add(sidePodRightTop);
+
+    const seatWellLeft = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.18, 0.55),
+        new THREE.MeshStandardMaterial({ color: white, roughness: 0.8 })
+    );
+    seatWellLeft.position.set(-0.20, 0.12, -0.10);
+    seatWellLeft.castShadow = true;
+    kart.add(seatWellLeft);
+
+    const seatWellRight = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.18, 0.55),
+        new THREE.MeshStandardMaterial({ color: white, roughness: 0.8 })
+    );
+    seatWellRight.position.set(0.20, 0.12, -0.10);
+    seatWellRight.castShadow = true;
+    kart.add(seatWellRight);
+
+    const seatBase = new THREE.Mesh(
+        new THREE.BoxGeometry(0.35, 0.05, 0.48),
+        new THREE.MeshStandardMaterial({ color: black, roughness: 0.9 })
+    );
+    seatBase.position.set(0, 0.08, -0.10);
     seatBase.castShadow = true;
     kart.add(seatBase);
 
-    const seatLeftSide = new THREE.Mesh(
-        new THREE.BoxGeometry(0.03, 0.16, 0.45),
-        new THREE.MeshStandardMaterial({ color: white, roughness: 0.7 })
-    );
-    seatLeftSide.position.set(-0.165, 0.14, -0.08);
-    seatLeftSide.castShadow = true;
-    kart.add(seatLeftSide);
-
-    const seatRightSide = new THREE.Mesh(
-        new THREE.BoxGeometry(0.03, 0.16, 0.45),
-        new THREE.MeshStandardMaterial({ color: white, roughness: 0.7 })
-    );
-    seatRightSide.position.set(0.165, 0.14, -0.08);
-    seatRightSide.castShadow = true;
-    kart.add(seatRightSide);
-
     const seatBack = new THREE.Mesh(
-        new THREE.BoxGeometry(0.36, 0.28, 0.04),
-        new THREE.MeshStandardMaterial({ color: white, roughness: 0.7 })
+        new THREE.BoxGeometry(0.35, 0.32, 0.05),
+        new THREE.MeshStandardMaterial({ color: black, roughness: 0.9 })
     );
-    seatBack.position.set(0, 0.18, -0.31);
-    seatBack.rotation.x = -0.15;
+    seatBack.position.set(0, 0.20, -0.32);
+    seatBack.rotation.x = -0.12;
     seatBack.castShadow = true;
     kart.add(seatBack);
 
-    const headrest = new THREE.Mesh(
-        new THREE.BoxGeometry(0.20, 0.12, 0.06),
-        new THREE.MeshStandardMaterial({ color: white, roughness: 0.7 })
+    const rearBodyLeft = new THREE.Mesh(
+        new THREE.BoxGeometry(0.20, 0.16, 0.35),
+        new THREE.MeshStandardMaterial({ color: white, metalness: 0.2, roughness: 0.7 })
     );
-    headrest.position.set(0, 0.34, -0.32);
-    headrest.castShadow = true;
-    kart.add(headrest);
+    rearBodyLeft.position.set(-0.32, 0.12, -0.52);
+    rearBodyLeft.castShadow = true;
+    kart.add(rearBodyLeft);
 
-    const sidePodLeft = new THREE.Mesh(
-        new THREE.BoxGeometry(0.08, 0.10, 0.65),
-        new THREE.MeshStandardMaterial({ color: blue, metalness: 0.4, roughness: 0.5 })
+    const rearBodyRight = new THREE.Mesh(
+        new THREE.BoxGeometry(0.20, 0.16, 0.35),
+        new THREE.MeshStandardMaterial({ color: white, metalness: 0.2, roughness: 0.7 })
     );
-    sidePodLeft.position.set(-0.30, 0.09, 0.15);
-    sidePodLeft.castShadow = true;
-    kart.add(sidePodLeft);
-
-    const sidePodRight = new THREE.Mesh(
-        new THREE.BoxGeometry(0.08, 0.10, 0.65),
-        new THREE.MeshStandardMaterial({ color: blue, metalness: 0.4, roughness: 0.5 })
-    );
-    sidePodRight.position.set(0.30, 0.09, 0.15);
-    sidePodRight.castShadow = true;
-    kart.add(sidePodRight);
-
-    const noseCone = new THREE.Mesh(
-        new THREE.BoxGeometry(0.40, 0.08, 0.18),
-        new THREE.MeshStandardMaterial({ color: white, metalness: 0.3, roughness: 0.6 })
-    );
-    noseCone.position.set(0, 0.07, 0.71);
-    noseCone.castShadow = true;
-    kart.add(noseCone);
-
-    const noseTop = new THREE.Mesh(
-        new THREE.BoxGeometry(0.35, 0.04, 0.12),
-        new THREE.MeshStandardMaterial({ color: blue, metalness: 0.4, roughness: 0.5 })
-    );
-    noseTop.position.set(0, 0.12, 0.70);
-    noseTop.castShadow = true;
-    kart.add(noseTop);
+    rearBodyRight.position.set(0.32, 0.12, -0.52);
+    rearBodyRight.castShadow = true;
+    kart.add(rearBodyRight);
 
     const frameLeftMain = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.018, 0.018, 1.40, 12),
+        new THREE.CylinderGeometry(0.015, 0.015, 1.20, 12),
         new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
     );
-    frameLeftMain.position.set(-0.27, 0.05, 0);
+    frameLeftMain.position.set(-0.25, 0.04, 0);
     frameLeftMain.rotation.z = Math.PI / 2;
     frameLeftMain.castShadow = true;
     kart.add(frameLeftMain);
 
     const frameRightMain = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.018, 0.018, 1.40, 12),
+        new THREE.CylinderGeometry(0.015, 0.015, 1.20, 12),
         new THREE.MeshStandardMaterial({ color: silver, metalness: 0.8, roughness: 0.2 })
     );
-    frameRightMain.position.set(0.27, 0.05, 0);
+    frameRightMain.position.set(0.25, 0.04, 0);
     frameRightMain.rotation.z = Math.PI / 2;
     frameRightMain.castShadow = true;
     kart.add(frameRightMain);
