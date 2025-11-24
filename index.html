@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kart Racing Game</title>
+  <script type="module" crossorigin src="/kart/assets/index-Duiovrg3.js"></script>
+  <link rel="stylesheet" crossorigin href="/kart/assets/index-Dbg7wouu.css">
+</head>
+<body>
+    <div id="game-container">
+        <h1>3D Kart Racing Game</h1>
+        <p>Drag to rotate - Scroll to zoom</p>
+        <canvas id="game-canvas"></canvas>
+    </div>
+    <div id="controls" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: monospace; font-size: 11px; max-width: 220px;">
+        <div style="margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #666; padding-bottom: 5px;">Material Groups (7)</div>
+        <div style="margin-bottom: 6px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-engine-block" checked style="margin-right: 8px;">
+                <span>Engine Block</span>
+            </label>
+        </div>
+        <div style="margin-bottom: 6px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-exhaust-upper-left" checked style="margin-right: 8px;">
+                <span>Exhaust Upper Left</span>
+            </label>
+        </div>
+        <div style="margin-bottom: 6px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-exhaust-upper-right" checked style="margin-right: 8px;">
+                <span>Exhaust Upper Right</span>
+            </label>
+        </div>
+        <div style="margin-bottom: 6px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-exhaust-lower-left" checked style="margin-right: 8px;">
+                <span>Exhaust Lower Left</span>
+            </label>
+        </div>
+        <div style="margin-bottom: 6px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-exhaust-lower-right" checked style="margin-right: 8px;">
+                <span>Exhaust Lower Right</span>
+            </label>
+        </div>
+        <div style="margin-bottom: 6px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-engine-casing-left" checked style="margin-right: 8px;">
+                <span>Engine Casing Left</span>
+            </label>
+        </div>
+        <div style="margin-bottom: 6px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="toggle-engine-casing-right" checked style="margin-right: 8px;">
+                <span>Engine Casing Right</span>
+            </label>
+        </div>
+        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #666; font-size: 10px; color: #aaa;">
+            Toggle individual material groups
+        </div>
+    </div>
+</body>
+</html>
